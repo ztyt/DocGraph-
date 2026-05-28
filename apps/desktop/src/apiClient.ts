@@ -3,11 +3,13 @@ import type {
   CreateScanJobRequest,
   DatabaseStatusData,
   FileActionData,
+  FileDetailData,
   FileListData,
   FileListQuery,
   FeatureFlagsData,
   FeatureFlagsPatch,
   HealthData,
+  ParseRetryData,
   ScanJobData,
   SearchData,
   SearchQuery,
@@ -110,6 +112,10 @@ export function listFiles(query: FileListQuery = {}) {
   return request<FileListData>(`/api/files${suffix}`);
 }
 
+export function getFileDetail(fileId: string) {
+  return request<FileDetailData>(`/api/files/${encodeURIComponent(fileId)}`);
+}
+
 export function openFile(fileId: string) {
   return request<FileActionData>(`/api/files/${encodeURIComponent(fileId)}/open`, {
     method: "POST",
@@ -123,6 +129,12 @@ export function revealFileInFolder(fileId: string) {
       method: "POST",
     },
   );
+}
+
+export function retryParseFile(fileId: string) {
+  return request<ParseRetryData>(`/api/parse/retry/${encodeURIComponent(fileId)}`, {
+    method: "POST",
+  });
 }
 
 export function searchFiles(query: SearchQuery) {

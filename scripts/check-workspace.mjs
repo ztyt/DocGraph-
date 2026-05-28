@@ -79,6 +79,7 @@ const requiredPaths = [
   "apps/sidecar/tests/test_fixtures.py",
   "apps/sidecar/tests/test_files_api.py",
   "apps/sidecar/tests/test_file_actions_api.py",
+  "apps/sidecar/tests/test_file_detail_api.py",
   "apps/sidecar/tests/test_files_catalog.py",
   "apps/sidecar/tests/test_fts_indexer.py",
   "apps/sidecar/tests/test_ignore_rules.py",

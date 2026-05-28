@@ -845,6 +845,103 @@ p {
   text-decoration: underline;
 }
 
+.file-detail-workbench {
+  display: grid;
+  gap: 16px;
+}
+
+.file-detail-meta-panel,
+.file-chunk-panel {
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid #d9e1e8;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.file-detail-header,
+.file-chunk-title {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.file-detail-header h2,
+.file-chunk-header h2,
+.file-chunk-title h3 {
+  margin: 0;
+}
+
+.file-detail-header p {
+  overflow-wrap: anywhere;
+}
+
+.file-detail-actions,
+.file-detail-action-messages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.file-detail-meta-grid dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.file-chunk-list {
+  display: grid;
+  gap: 12px;
+}
+
+.file-chunk-card {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #dfe6ec;
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+
+.file-chunk-title span {
+  flex: 0 0 auto;
+  color: #6b7785;
+  font-weight: 800;
+}
+
+.file-chunk-card p {
+  overflow-wrap: anywhere;
+  color: #344551;
+}
+
+.file-chunk-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.file-chunk-meta div {
+  min-width: 0;
+}
+
+.file-chunk-meta dt {
+  color: #6b7785;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.file-chunk-meta dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
 .file-status {
   display: inline-flex;
   align-items: center;
@@ -925,12 +1022,15 @@ p {
   .search-topbar,
   .search-main-grid,
   .search-result-meta,
+  .file-chunk-meta,
   .files-filter-bar,
   .scan-meta-grid {
     grid-template-columns: 1fr;
   }
 
   .files-table-header,
+  .file-detail-header,
+  .file-chunk-title,
   .search-results-header,
   .search-result-title-row,
   .search-pagination,

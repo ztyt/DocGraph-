@@ -160,6 +160,25 @@ export interface FileActionData {
   status: "started";
 }
 
+export interface FileDetailChunk {
+  chunk_id: string;
+  chunk_index: number;
+  chunk_type: string | null;
+  page_no: number | null;
+  sheet_name: string | null;
+  slide_no: number | null;
+  heading: string | null;
+  section_path: string | null;
+  text: string;
+  token_count: number | null;
+}
+
+export interface FileDetailData {
+  file: FileListItem;
+  chunks: FileDetailChunk[];
+  chunk_count: number;
+}
+
 export interface SearchMatchedChunk {
   chunk_id: string;
   heading: string | null;

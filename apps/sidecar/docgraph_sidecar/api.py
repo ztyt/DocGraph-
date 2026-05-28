@@ -211,6 +211,34 @@ def create_app(
         )
         return ok_response(data, context)
 
+    @app.get("/api/files/{file_id}")
+    async def get_file_detail(file_id: str, request: Request) -> Any:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        try:
+            data = FileCatalog(data_dir=store.data_dir).get_file_detail(file_id).to_dict()
+        except FileCatalogError as exc:
+            return JSONResponse(
+                status_code=404,
+                content=error_response(
+                    code="FILE_NOT_FOUND",
+                    message=str(exc),
+                    retryable=False,
+                    details=exc.details,
+                    context=context,
+                ),
+            )
+
+        log_event(
+            "api.request",
+            path=f"/api/files/{file_id}",
+            trace_id=context.trace_id,
+            status_code=200,
+            file_id=file_id,
+            chunk_count=data["chunk_count"],
+        )
+        return ok_response(data, context)
+
     @app.get("/api/search")
     async def search(request: Request) -> Any:
         context = request_context(request)

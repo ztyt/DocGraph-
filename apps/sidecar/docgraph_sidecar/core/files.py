@@ -64,6 +64,47 @@ class FileListItem:
 
 
 @dataclass(frozen=True)
+class FileDetailChunk:
+    chunk_id: str
+    chunk_index: int
+    chunk_type: str | None
+    page_no: int | None
+    sheet_name: str | None
+    slide_no: int | None
+    heading: str | None
+    section_path: str | None
+    text: str
+    token_count: int | None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "chunk_id": self.chunk_id,
+            "chunk_index": self.chunk_index,
+            "chunk_type": self.chunk_type,
+            "page_no": self.page_no,
+            "sheet_name": self.sheet_name,
+            "slide_no": self.slide_no,
+            "heading": self.heading,
+            "section_path": self.section_path,
+            "text": self.text,
+            "token_count": self.token_count,
+        }
+
+
+@dataclass(frozen=True)
+class FileDetail:
+    file: FileListItem
+    chunks: tuple[FileDetailChunk, ...]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "file": self.file.to_dict(),
+            "chunks": [chunk.to_dict() for chunk in self.chunks],
+            "chunk_count": len(self.chunks),
+        }
+
+
+@dataclass(frozen=True)
 class FileListResult:
     items: tuple[FileListItem, ...]
     total: int
@@ -138,6 +179,60 @@ class FileCatalog:
             filters=filters,
         )
 
+    def get_file_detail(self, file_id: str) -> FileDetail:
+        connection = connect(data_dir=self.data_dir)
+        try:
+            file_row = connection.execute(
+                """
+                SELECT
+                  file_id,
+                  filename,
+                  path,
+                  extension,
+                  source_type,
+                  size_bytes,
+                  modified_time,
+                  file_status,
+                  parse_status
+                FROM files
+                WHERE file_id = ?
+                  AND deleted_flag = 0
+                """,
+                (file_id,),
+            ).fetchone()
+            if file_row is None:
+                raise FileCatalogError(
+                    "File not found.",
+                    details={"file_id": file_id},
+                )
+
+            chunk_rows = connection.execute(
+                """
+                SELECT
+                  chunk_id,
+                  chunk_index,
+                  chunk_type,
+                  page_no,
+                  sheet_name,
+                  slide_no,
+                  heading,
+                  section_path,
+                  text,
+                  token_count
+                FROM chunks
+                WHERE file_id = ?
+                ORDER BY chunk_index
+                """,
+                (file_id,),
+            ).fetchall()
+        finally:
+            connection.close()
+
+        return FileDetail(
+            file=_row_to_file(file_row),
+            chunks=tuple(_row_to_chunk(row) for row in chunk_rows),
+        )
+
 
 def parse_file_list_filters(params: dict[str, str | None]) -> FileListFilters:
     limit = _parse_int(params.get("limit"), name="limit", default=DEFAULT_FILE_LIST_LIMIT)
@@ -174,6 +269,21 @@ def _row_to_file(row: Any) -> FileListItem:
         modified_time=row["modified_time"],
         file_status=str(row["file_status"]),
         parse_status=str(row["parse_status"]),
+    )
+
+
+def _row_to_chunk(row: Any) -> FileDetailChunk:
+    return FileDetailChunk(
+        chunk_id=str(row["chunk_id"]),
+        chunk_index=int(row["chunk_index"]),
+        chunk_type=row["chunk_type"],
+        page_no=row["page_no"],
+        sheet_name=row["sheet_name"],
+        slide_no=row["slide_no"],
+        heading=row["heading"],
+        section_path=row["section_path"],
+        text=str(row["text"]),
+        token_count=row["token_count"],
     )
 
 
