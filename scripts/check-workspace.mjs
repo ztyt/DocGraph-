@@ -33,12 +33,14 @@ const requiredPaths = [
   "apps/sidecar/docgraph_sidecar/settings_store.py",
   "apps/sidecar/docgraph_sidecar/core/db.py",
   "apps/sidecar/docgraph_sidecar/migrations/001_init.sql",
+  "apps/sidecar/docgraph_sidecar/migrations/002_v4_schema.sql",
   "apps/sidecar/tests/test_skeleton.py",
   "apps/sidecar/tests/test_db.py",
   "packages/shared/package.json",
   "packages/shared/src/index.ts",
   "fixtures/README.md",
   "docs/README.md",
+  "docs/database-migrations.md",
   "scripts/dev-placeholder.mjs",
 ];
 

@@ -27,11 +27,11 @@ class DatabaseMigrationTest(unittest.TestCase):
         first = initialize_database(data_dir=self.data_dir)
         second = initialize_database(data_dir=self.data_dir)
 
-        self.assertEqual(first.applied, ("001_init",))
+        self.assertEqual(first.applied, ("001_init", "002_v4_schema"))
         self.assertEqual(first.skipped, ())
         self.assertEqual(second.applied, ())
-        self.assertEqual(second.skipped, ("001_init",))
-        self.assertEqual(second.schema_version, "001_init")
+        self.assertEqual(second.skipped, ("001_init", "002_v4_schema"))
+        self.assertEqual(second.schema_version, "002_v4_schema")
         self.assertTrue(first.db_path.exists())
 
     def test_connection_pragmas_are_configured(self) -> None:
@@ -58,8 +58,114 @@ class DatabaseMigrationTest(unittest.TestCase):
         finally:
             connection.close()
 
-        self.assertEqual(meta["schema_version"], "001_init")
+        self.assertEqual(meta["schema_version"], "002_v4_schema")
         self.assertTrue(meta[f"{MIGRATION_PREFIX}001_init"])
+        self.assertTrue(meta[f"{MIGRATION_PREFIX}002_v4_schema"])
+
+    def test_v4_schema_creates_required_tables(self) -> None:
+        initialize_database(data_dir=self.data_dir)
+
+        required_tables = {
+            "files",
+            "document_elements",
+            "chunks",
+            "fts_chunks",
+            "task_queue",
+            "parse_errors",
+            "document_profiles",
+            "entities",
+            "file_entities",
+            "relation_candidates",
+            "edges",
+            "eval_queries",
+            "eval_runs",
+            "api_logs",
+            "snapshots",
+        }
+        connection = connect(data_dir=self.data_dir)
+        try:
+            rows = connection.execute(
+                """
+                SELECT name FROM sqlite_master
+                WHERE type IN ('table', 'virtual table')
+                UNION
+                SELECT name FROM sqlite_master
+                WHERE type = 'table' AND name LIKE 'fts_chunks%'
+                """
+            ).fetchall()
+        finally:
+            connection.close()
+
+        table_names = {row[0] for row in rows}
+        self.assertTrue(required_tables.issubset(table_names))
+
+    def test_file_cascade_removes_dependent_records(self) -> None:
+        initialize_database(data_dir=self.data_dir)
+
+        connection = connect(data_dir=self.data_dir)
+        try:
+            connection.execute(
+                """
+                INSERT INTO files (file_id, path, filename)
+                VALUES ('file-1', 'C:/docs/a.txt', 'a.txt')
+                """
+            )
+            connection.execute(
+                """
+                INSERT INTO document_elements (element_id, file_id, element_index, text)
+                VALUES ('element-1', 'file-1', 0, 'hello')
+                """
+            )
+            connection.execute(
+                """
+                INSERT INTO chunks (chunk_id, file_id, element_id, chunk_index, text)
+                VALUES ('chunk-1', 'file-1', 'element-1', 0, 'hello world')
+                """
+            )
+            connection.execute(
+                """
+                INSERT INTO document_profiles (file_id, central_idea)
+                VALUES ('file-1', 'Test profile')
+                """
+            )
+            connection.execute("DELETE FROM files WHERE file_id = 'file-1'")
+            connection.commit()
+
+            chunks_count = connection.execute("SELECT COUNT(*) FROM chunks").fetchone()[0]
+            elements_count = connection.execute(
+                "SELECT COUNT(*) FROM document_elements"
+            ).fetchone()[0]
+            profiles_count = connection.execute(
+                "SELECT COUNT(*) FROM document_profiles"
+            ).fetchone()[0]
+        finally:
+            connection.close()
+
+        self.assertEqual(chunks_count, 0)
+        self.assertEqual(elements_count, 0)
+        self.assertEqual(profiles_count, 0)
+
+    def test_fts_chunks_can_index_and_match_text(self) -> None:
+        initialize_database(data_dir=self.data_dir)
+
+        connection = connect(data_dir=self.data_dir)
+        try:
+            connection.execute(
+                """
+                INSERT INTO fts_chunks (file_id, chunk_id, filename, heading, text)
+                VALUES ('file-1', 'chunk-1', 'plan.txt', 'Plan', 'alpha beta project')
+                """
+            )
+            rows = connection.execute(
+                """
+                SELECT file_id, chunk_id FROM fts_chunks
+                WHERE fts_chunks MATCH 'alpha'
+                """
+            ).fetchall()
+        finally:
+            connection.close()
+
+        self.assertEqual([(row["file_id"], row["chunk_id"]) for row in rows], [("file-1", "chunk-1")])
 
     def test_cli_init_db_outputs_result_json(self) -> None:
         app_path = Path(__file__).resolve().parents[1] / "app.py"
@@ -70,7 +176,7 @@ class DatabaseMigrationTest(unittest.TestCase):
             text=True,
         )
 
-        self.assertIn('"schema_version": "001_init"', result.stdout)
+        self.assertIn('"schema_version": "002_v4_schema"', result.stdout)
         self.assertTrue((self.data_dir / "docgraph.sqlite").exists())
 
 
