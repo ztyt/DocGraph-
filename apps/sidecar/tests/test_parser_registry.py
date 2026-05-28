@@ -113,6 +113,7 @@ class ParserRegistryTest(unittest.TestCase):
 
         self.assertEqual(registry.get_for_extension(".txt").name, "text-markdown")
         self.assertEqual(registry.get_for_extension("md").name, "text-markdown")
+        self.assertEqual(registry.get_for_extension("docx").name, "docx")
 
 
 if __name__ == "__main__":

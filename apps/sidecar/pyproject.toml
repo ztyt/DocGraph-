@@ -5,6 +5,7 @@ description = "Local sidecar service for DocGraph V4."
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115.0",
+  "python-docx>=1.1.0",
   "uvicorn>=0.30.0"
 ]
 
@@ -20,4 +21,3 @@ target-version = "py311"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-

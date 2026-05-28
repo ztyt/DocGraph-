@@ -6,7 +6,10 @@ from docgraph_sidecar.parser.base import (
     ParsedDocumentElement,
     ParseContext,
     ParseResult,
+    ParserError,
 )
+from docgraph_sidecar.parser.docx import DocxParser
+from docgraph_sidecar.parser.errors import parse_with_error_recording, record_parse_error
 from docgraph_sidecar.parser.registry import ParserRegistry, ParserRegistryError, default_parser_registry
 from docgraph_sidecar.parser.text import TextMarkdownParser
 
@@ -16,8 +19,12 @@ __all__ = [
     "ParsedDocumentElement",
     "ParseContext",
     "ParseResult",
+    "ParserError",
+    "DocxParser",
     "ParserRegistry",
     "ParserRegistryError",
     "TextMarkdownParser",
     "default_parser_registry",
+    "parse_with_error_recording",
+    "record_parse_error",
 ]

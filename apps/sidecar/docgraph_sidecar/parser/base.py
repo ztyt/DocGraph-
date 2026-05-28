@@ -6,6 +6,23 @@ from pathlib import Path
 from typing import Any
 
 
+class ParserError(RuntimeError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        error_code: str,
+        parser_name: str,
+        retryable: bool = False,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.error_code = error_code
+        self.parser_name = parser_name
+        self.retryable = retryable
+        self.details = details or {}
+
+
 @dataclass(frozen=True)
 class ParseContext:
     file_id: str
