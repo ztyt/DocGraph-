@@ -34,6 +34,7 @@ const requiredPaths = [
   "apps/sidecar/docgraph_sidecar/core/db.py",
   "apps/sidecar/docgraph_sidecar/core/snapshots.py",
   "apps/sidecar/docgraph_sidecar/scanner/ignore_rules.py",
+  "apps/sidecar/docgraph_sidecar/scanner/metadata.py",
   "apps/sidecar/docgraph_sidecar/migrations/001_init.sql",
   "apps/sidecar/docgraph_sidecar/migrations/002_v4_schema.sql",
   "apps/sidecar/tests/test_skeleton.py",
@@ -54,6 +55,7 @@ const requiredPaths = [
   "fixtures/basic_docs/bad_file.bin",
   "apps/sidecar/tests/test_fixtures.py",
   "apps/sidecar/tests/test_ignore_rules.py",
+  "apps/sidecar/tests/test_metadata_scanner.py",
   "scripts/dev-placeholder.mjs",
 ];
 
