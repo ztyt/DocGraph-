@@ -6,6 +6,7 @@ from pathlib import Path
 import uvicorn
 
 from docgraph_sidecar.core.db import initialize_database, migration_result_json
+from docgraph_sidecar.indexer.fts import rebuild_fts, rebuild_fts_json
 
 
 def main() -> None:
@@ -20,11 +21,19 @@ def main() -> None:
     init_parser.add_argument("--data-dir", type=Path)
     init_parser.add_argument("--db-path", type=Path)
 
+    rebuild_fts_parser = subparsers.add_parser("rebuild-fts", help="Rebuild the FTS chunk index")
+    rebuild_fts_parser.add_argument("--data-dir", type=Path)
+
     args = parser.parse_args()
 
     if args.command == "init-db":
         result = initialize_database(data_dir=args.data_dir, db_path=args.db_path)
         print(migration_result_json(result))
+        return
+
+    if args.command == "rebuild-fts":
+        result = rebuild_fts(data_dir=args.data_dir)
+        print(rebuild_fts_json(result))
         return
 
     host = getattr(args, "host", "127.0.0.1")

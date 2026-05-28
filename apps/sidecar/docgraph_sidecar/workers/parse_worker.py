@@ -10,6 +10,7 @@ from typing import Any
 
 from docgraph_sidecar.core.db import connect, initialize_database
 from docgraph_sidecar.core.tasks import TaskQueue, TaskRecord
+from docgraph_sidecar.indexer.fts import replace_file_fts_rows
 from docgraph_sidecar.parser.base import (
     ParsedChunk,
     ParsedDocumentElement,
@@ -333,6 +334,7 @@ class ParseWorker:
                 """,
                 [_chunk_values(chunk, created_at=now) for chunk in chunks],
             )
+            replace_file_fts_rows(connection, file_id=result.file_id)
             connection.execute(
                 """
                 UPDATE files

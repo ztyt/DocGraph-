@@ -17,6 +17,7 @@ from docgraph_sidecar.core.snapshots import (
     database_status,
     restore_snapshot,
 )
+from docgraph_sidecar.indexer.fts import FtsIndexError, rebuild_fts
 from docgraph_sidecar.logging import configure_logging, log_event
 from docgraph_sidecar.responses import error_response, ok_response, request_context
 from docgraph_sidecar.settings_store import SettingsStore, SettingsValidationError
@@ -254,6 +255,33 @@ def create_app(settings_store: SettingsStore | None = None) -> FastAPI:
             trace_id=context.trace_id,
             status_code=200,
             snapshot_id=snapshot_id,
+        )
+        return ok_response(data, context)
+
+    @app.post("/api/db/rebuild-fts")
+    async def db_rebuild_fts(request: Request) -> Any:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        try:
+            data = rebuild_fts(data_dir=store.data_dir).to_dict()
+        except FtsIndexError as exc:
+            return JSONResponse(
+                status_code=400,
+                content=error_response(
+                    code="FTS_REBUILD_ERROR",
+                    message=str(exc),
+                    retryable=True,
+                    context=context,
+                ),
+            )
+
+        log_event(
+            "api.request",
+            path="/api/db/rebuild-fts",
+            trace_id=context.trace_id,
+            status_code=200,
+            indexed_chunk_count=data["indexed_chunk_count"],
+            indexed_file_count=data["indexed_file_count"],
         )
         return ok_response(data, context)
 

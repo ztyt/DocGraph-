@@ -70,6 +70,13 @@ export interface DatabaseStatusData {
   snapshot_count: number;
 }
 
+export interface FtsIndexData {
+  file_id: string | null;
+  indexed_chunk_count: number;
+  indexed_file_count: number;
+  rebuilt_at: string;
+}
+
 export interface SnapshotData {
   snapshot_id: string;
   snapshot_dir: string;
