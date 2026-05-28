@@ -107,3 +107,39 @@ export interface CreateScanJobRequest {
   compute_hash?: boolean;
   priority?: number;
 }
+
+export interface FileListItem {
+  file_id: string;
+  filename: string;
+  path: string;
+  extension: string | null;
+  source_type: string | null;
+  size_bytes: number | null;
+  modified_time: string | null;
+  file_status: string;
+  parse_status: string;
+}
+
+export interface FileListFilters {
+  type: string | null;
+  status: string | null;
+  source: string | null;
+  keyword: string | null;
+  limit: number;
+  offset: number;
+}
+
+export interface FileListData {
+  items: FileListItem[];
+  total: number;
+  filters: FileListFilters;
+}
+
+export interface FileListQuery {
+  type?: string;
+  status?: string;
+  source?: string;
+  keyword?: string;
+  limit?: number;
+  offset?: number;
+}

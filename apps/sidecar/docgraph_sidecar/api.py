@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from docgraph_sidecar import __version__
+from docgraph_sidecar.core.files import FileCatalog, FileCatalogError, parse_file_list_filters
 from docgraph_sidecar.core.scan_jobs import ScanJobError, ScanJobStore
 from docgraph_sidecar.core.snapshots import (
     SnapshotError,
@@ -157,6 +158,43 @@ def create_app(settings_store: SettingsStore | None = None) -> FastAPI:
             path="/api/system/info",
             trace_id=context.trace_id,
             status_code=200,
+        )
+        return ok_response(data, context)
+
+    @app.get("/api/files")
+    async def list_files(request: Request) -> Any:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        try:
+            filters = parse_file_list_filters(
+                {
+                    "type": request.query_params.get("type"),
+                    "status": request.query_params.get("status"),
+                    "source": request.query_params.get("source"),
+                    "keyword": request.query_params.get("keyword"),
+                    "limit": request.query_params.get("limit"),
+                    "offset": request.query_params.get("offset"),
+                }
+            )
+            data = FileCatalog(data_dir=store.data_dir).list_files(filters).to_dict()
+        except FileCatalogError as exc:
+            return JSONResponse(
+                status_code=400,
+                content=error_response(
+                    code="FILES_QUERY_VALIDATION_ERROR",
+                    message=str(exc),
+                    retryable=False,
+                    details=exc.details,
+                    context=context,
+                ),
+            )
+
+        log_event(
+            "api.request",
+            path="/api/files",
+            trace_id=context.trace_id,
+            status_code=200,
+            total=data["total"],
         )
         return ok_response(data, context)
 

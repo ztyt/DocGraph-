@@ -2,6 +2,8 @@ import type {
   ApiEnvelope,
   CreateScanJobRequest,
   DatabaseStatusData,
+  FileListData,
+  FileListQuery,
   FeatureFlagsData,
   FeatureFlagsPatch,
   HealthData,
@@ -92,4 +94,15 @@ export function resumeScanJob(jobId: string) {
   return request<ScanJobData>(`/api/scan/jobs/${encodeURIComponent(jobId)}/resume`, {
     method: "POST",
   });
+}
+
+export function listFiles(query: FileListQuery = {}) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === null || value === "") continue;
+    params.set(key, String(value));
+  }
+
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return request<FileListData>(`/api/files${suffix}`);
 }

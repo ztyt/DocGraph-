@@ -5,8 +5,8 @@ const navItems = [
   { to: "/", label: "Home", end: true },
   { to: "/onboarding", label: "Onboarding" },
   { to: "/scan", label: "Scan" },
+  { to: "/files", label: "Files" },
   { to: "/search", label: "Search" },
-  { to: "/files/sample-file", label: "File Detail" },
   { to: "/settings", label: "Settings" },
   { to: "/audit", label: "Audit" },
 ];
@@ -48,4 +48,3 @@ export function AppShell({ children }: { children: ReactNode }) {
     </div>
   );
 }
-

@@ -511,6 +511,128 @@ p {
   color: #52616f;
 }
 
+.files-workbench {
+  display: grid;
+  gap: 16px;
+}
+
+.files-filter-bar {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.5fr) repeat(3, minmax(120px, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 20px;
+  border: 1px solid #d9e1e8;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.files-filter-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.files-table-panel {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid #d9e1e8;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.files-table-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.files-table-header h2 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.files-table-header span {
+  max-width: 260px;
+  overflow-wrap: anywhere;
+  color: #6b7785;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.files-table-scroll {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.files-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.files-table th,
+.files-table td {
+  padding: 11px 10px;
+  border-bottom: 1px solid #e4eaf0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.files-table th {
+  color: #6b7785;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.files-table td {
+  color: #3e4c59;
+}
+
+.files-table td:nth-child(1),
+.files-table td:nth-child(3),
+.files-table td:nth-child(4),
+.files-table td:nth-child(5),
+.files-table td:nth-child(6) {
+  white-space: nowrap;
+}
+
+.files-table td:nth-child(2) {
+  max-width: 360px;
+  overflow-wrap: anywhere;
+}
+
+.files-table a {
+  color: #204e63;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.files-table a:hover {
+  text-decoration: underline;
+}
+
+.file-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  color: #205c34;
+  background: #e8f5eb;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.file-status.failed {
+  color: #9f1f17;
+  background: #fdeceb;
+}
+
 @keyframes scan-progress-slide {
   0% {
     transform: translateX(-110%);
@@ -571,12 +693,19 @@ p {
   }
 
   .scan-workbench,
+  .files-filter-bar,
   .scan-meta-grid {
     grid-template-columns: 1fr;
   }
 
+  .files-table-header,
   .settings-actions {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .files-table-header span {
+    max-width: none;
+    text-align: left;
   }
 }
