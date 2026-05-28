@@ -61,3 +61,22 @@ export interface FeatureFlagsData {
 }
 
 export type FeatureFlagsPatch = Partial<FeatureFlagsData>;
+
+export interface DatabaseStatusData {
+  db_path: string;
+  exists: boolean;
+  schema_version: string | null;
+  size_bytes: number;
+  snapshot_count: number;
+}
+
+export interface SnapshotData {
+  snapshot_id: string;
+  snapshot_dir: string;
+  db_path: string;
+  settings_path: string | null;
+  size_bytes: number;
+  schema_version: string | null;
+  status: "created" | "restored";
+  created_at: string;
+}

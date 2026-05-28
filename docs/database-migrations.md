@@ -29,3 +29,22 @@ Remove-Item .docgraph\schema-smoke\docgraph.sqlite
 
 After user data exists, rollback must be snapshot-based rather than table-dropping. The snapshot and restore workflow starts in `VC-007`.
 
+## Snapshots
+
+Database snapshots copy only the local SQLite index and `settings.json` when it exists. They do not copy, move, delete, rename, or rewrite user source documents.
+
+Snapshot APIs:
+
+- `GET /api/db/status`
+- `POST /api/db/snapshot`
+- `POST /api/db/restore/{snapshot_id}`
+
+Snapshots are stored under the configured DocGraph data directory:
+
+```text
+snapshots/{snapshot_id}/docgraph.sqlite
+snapshots/{snapshot_id}/settings.json
+```
+
+Restore replaces the local index database with the selected snapshot and restores the snapshot settings file when present. SQLite WAL/SHM sidecar files are removed during restore so SQLite can recreate them cleanly.
+

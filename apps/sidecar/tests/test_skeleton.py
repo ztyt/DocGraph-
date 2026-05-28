@@ -120,6 +120,31 @@ class HealthApiTest(unittest.TestCase):
         self.assertTrue(health["data"]["features"]["llm"])
         self.assertTrue(health["data"]["features"]["ocr"])
 
+    def test_db_snapshot_status_and_restore_api(self) -> None:
+        status = self.client.get("/api/db/status")
+
+        self.assertEqual(status.status_code, 200)
+        self.assertTrue(status.json()["data"]["exists"])
+        self.assertEqual(status.json()["data"]["schema_version"], "002_v4_schema")
+
+        snapshot = self.client.post("/api/db/snapshot")
+        self.assertEqual(snapshot.status_code, 200)
+        snapshot_data = snapshot.json()["data"]
+        self.assertEqual(snapshot_data["status"], "created")
+        self.assertTrue(snapshot_data["snapshot_id"].startswith("snap-"))
+
+        restore = self.client.post(f"/api/db/restore/{snapshot_data['snapshot_id']}")
+        self.assertEqual(restore.status_code, 200)
+        self.assertEqual(restore.json()["data"]["status"], "restored")
+
+    def test_missing_snapshot_returns_error_envelope(self) -> None:
+        response = self.client.post("/api/db/restore/missing")
+
+        self.assertEqual(response.status_code, 404)
+        payload = response.json()
+        self.assertFalse(payload["ok"])
+        self.assertEqual(payload["error"]["code"], "SNAPSHOT_NOT_FOUND")
+
 
 if __name__ == "__main__":
     unittest.main()

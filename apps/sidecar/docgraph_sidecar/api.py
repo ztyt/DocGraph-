@@ -9,6 +9,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from docgraph_sidecar import __version__
+from docgraph_sidecar.core.snapshots import (
+    SnapshotError,
+    create_snapshot,
+    database_status,
+    restore_snapshot,
+)
 from docgraph_sidecar.logging import configure_logging, log_event
 from docgraph_sidecar.responses import error_response, ok_response, request_context
 from docgraph_sidecar.settings_store import SettingsStore, SettingsValidationError
@@ -150,6 +156,64 @@ def create_app(settings_store: SettingsStore | None = None) -> FastAPI:
             path="/api/system/info",
             trace_id=context.trace_id,
             status_code=200,
+        )
+        return ok_response(data, context)
+
+    @app.get("/api/db/status")
+    async def db_status(request: Request) -> dict[str, Any]:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        data = database_status(data_dir=store.data_dir).to_dict()
+        log_event(
+            "api.request",
+            path="/api/db/status",
+            trace_id=context.trace_id,
+            status_code=200,
+        )
+        return ok_response(data, context)
+
+    @app.post("/api/db/snapshot")
+    async def db_snapshot(request: Request) -> dict[str, Any]:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        data = create_snapshot(data_dir=store.data_dir, settings_store=store).to_dict()
+        log_event(
+            "api.request",
+            path="/api/db/snapshot",
+            trace_id=context.trace_id,
+            status_code=200,
+            snapshot_id=data["snapshot_id"],
+        )
+        return ok_response(data, context)
+
+    @app.post("/api/db/restore/{snapshot_id}")
+    async def db_restore(snapshot_id: str, request: Request) -> Any:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        try:
+            data = restore_snapshot(
+                snapshot_id,
+                data_dir=store.data_dir,
+                settings_store=store,
+            ).to_dict()
+        except SnapshotError as exc:
+            return JSONResponse(
+                status_code=404,
+                content=error_response(
+                    code="SNAPSHOT_NOT_FOUND",
+                    message=str(exc),
+                    retryable=False,
+                    details={"snapshot_id": snapshot_id},
+                    context=context,
+                ),
+            )
+
+        log_event(
+            "api.request",
+            path=f"/api/db/restore/{snapshot_id}",
+            trace_id=context.trace_id,
+            status_code=200,
+            snapshot_id=snapshot_id,
         )
         return ok_response(data, context)
 

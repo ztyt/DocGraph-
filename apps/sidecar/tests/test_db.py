@@ -13,6 +13,12 @@ from docgraph_sidecar.core.db import (
     initialize_database,
     read_schema_meta,
 )
+from docgraph_sidecar.core.snapshots import (
+    create_snapshot,
+    database_status,
+    restore_snapshot,
+)
+from docgraph_sidecar.settings_store import SettingsStore
 
 
 class DatabaseMigrationTest(unittest.TestCase):
@@ -178,6 +184,65 @@ class DatabaseMigrationTest(unittest.TestCase):
 
         self.assertIn('"schema_version": "002_v4_schema"', result.stdout)
         self.assertTrue((self.data_dir / "docgraph.sqlite").exists())
+
+    def test_database_status_initializes_database(self) -> None:
+        status = database_status(data_dir=self.data_dir)
+
+        self.assertTrue(status.exists)
+        self.assertEqual(status.schema_version, "002_v4_schema")
+        self.assertEqual(status.snapshot_count, 0)
+        self.assertGreater(status.size_bytes, 0)
+
+    def test_snapshot_and_restore_copy_db_and_settings(self) -> None:
+        store = SettingsStore(self.data_dir)
+        store.save({"privacy_mode": "half_cloud", "llm_enabled": True})
+        initialize_database(data_dir=self.data_dir)
+
+        connection = connect(data_dir=self.data_dir)
+        try:
+            connection.execute(
+                """
+                INSERT INTO files (file_id, path, filename)
+                VALUES ('file-before', 'C:/docs/before.txt', 'before.txt')
+                """
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        snapshot = create_snapshot(data_dir=self.data_dir, settings_store=store)
+        self.assertEqual(snapshot.status, "created")
+        self.assertTrue(snapshot.db_path.exists())
+        self.assertTrue(snapshot.settings_path and snapshot.settings_path.exists())
+
+        store.save({"privacy_mode": "cloud_enhanced", "llm_enabled": False})
+        connection = connect(data_dir=self.data_dir)
+        try:
+            connection.execute(
+                """
+                INSERT INTO files (file_id, path, filename)
+                VALUES ('file-after', 'C:/docs/after.txt', 'after.txt')
+                """
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        restored = restore_snapshot(snapshot.snapshot_id, data_dir=self.data_dir, settings_store=store)
+        self.assertEqual(restored.status, "restored")
+        self.assertEqual(store.load()["privacy_mode"], "half_cloud")
+        self.assertTrue(store.load()["llm_enabled"])
+
+        connection = connect(data_dir=self.data_dir)
+        try:
+            file_ids = {
+                row["file_id"]
+                for row in connection.execute("SELECT file_id FROM files").fetchall()
+            }
+        finally:
+            connection.close()
+
+        self.assertEqual(file_ids, {"file-before"})
 
 
 if __name__ == "__main__":

@@ -32,6 +32,7 @@ const requiredPaths = [
   "apps/sidecar/docgraph_sidecar/responses.py",
   "apps/sidecar/docgraph_sidecar/settings_store.py",
   "apps/sidecar/docgraph_sidecar/core/db.py",
+  "apps/sidecar/docgraph_sidecar/core/snapshots.py",
   "apps/sidecar/docgraph_sidecar/migrations/001_init.sql",
   "apps/sidecar/docgraph_sidecar/migrations/002_v4_schema.sql",
   "apps/sidecar/tests/test_skeleton.py",
