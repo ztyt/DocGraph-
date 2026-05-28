@@ -143,3 +143,27 @@ export interface FileListQuery {
   limit?: number;
   offset?: number;
 }
+
+export type TaskStatus = "queued" | "running" | "done" | "failed";
+
+export interface TaskData {
+  task_id: string;
+  task_type: string;
+  task_status: TaskStatus;
+  priority: number;
+  payload: Record<string, unknown>;
+  retry_count: number;
+  max_attempts: number;
+  last_error_code: string | null;
+  last_error_message: string | null;
+  scheduled_at: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface ParseRetryData {
+  file_id: string;
+  task: TaskData;
+}

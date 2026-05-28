@@ -20,6 +20,7 @@ from docgraph_sidecar.core.snapshots import (
 from docgraph_sidecar.logging import configure_logging, log_event
 from docgraph_sidecar.responses import error_response, ok_response, request_context
 from docgraph_sidecar.settings_store import SettingsStore, SettingsValidationError
+from docgraph_sidecar.workers.parse_worker import ParseWorker, ParseWorkerError
 
 
 SERVICE_NAME = "docgraph-sidecar"
@@ -385,6 +386,29 @@ def create_app(settings_store: SettingsStore | None = None) -> FastAPI:
         )
         return ok_response(data, context)
 
+    @app.post("/api/parse/retry/{file_id}")
+    async def retry_parse(file_id: str, request: Request) -> Any:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        try:
+            task = ParseWorker(data_dir=store.data_dir).enqueue_file_parse(file_id)
+        except ParseWorkerError as exc:
+            return _parse_worker_error_response(exc, context)
+
+        data = {
+            "file_id": file_id,
+            "task": task.to_dict(),
+        }
+        log_event(
+            "api.request",
+            path=f"/api/parse/retry/{file_id}",
+            trace_id=context.trace_id,
+            status_code=200,
+            task_id=task.task_id,
+            file_id=file_id,
+        )
+        return ok_response(data, context)
+
     @app.exception_handler(Exception)
     async def unhandled_exception(request: Request, exc: Exception) -> JSONResponse:
         context = request_context(request)
@@ -417,6 +441,20 @@ def _scan_job_error_response(exc: ScanJobError, context: Any) -> JSONResponse:
             message=str(exc),
             retryable=False,
             details=details,
+            context=context,
+        ),
+    )
+
+
+def _parse_worker_error_response(exc: ParseWorkerError, context: Any) -> JSONResponse:
+    status_code = 404 if exc.error_code == "FILE_NOT_FOUND" else 400
+    return JSONResponse(
+        status_code=status_code,
+        content=error_response(
+            code=exc.error_code,
+            message=str(exc),
+            retryable=exc.retryable,
+            details=exc.details,
             context=context,
         ),
     )
