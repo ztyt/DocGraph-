@@ -21,7 +21,8 @@ def create_app() -> FastAPI:
     app = FastAPI(title="DocGraph Sidecar", version=__version__)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:5173", "tauri://localhost"],
+        allow_origins=["tauri://localhost"],
+        allow_origin_regex=r"^http://(localhost|127\.0\.0\.1):\d+$",
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["*"],
@@ -92,4 +93,3 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-

@@ -42,6 +42,18 @@ class HealthApiTest(unittest.TestCase):
         self.assertEqual(payload["data"]["service"], "docgraph-sidecar")
         self.assertIn("python_version", payload["data"])
 
+    def test_localhost_dev_ports_are_allowed_by_cors(self) -> None:
+        response = self.client.options(
+            "/api/health",
+            headers={
+                "origin": "http://localhost:5174",
+                "access-control-request-method": "GET",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["access-control-allow-origin"], "http://localhost:5174")
+
 
 if __name__ == "__main__":
     unittest.main()
