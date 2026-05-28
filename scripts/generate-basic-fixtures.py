@@ -9,6 +9,7 @@ from xml.sax.saxutils import escape
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_DIR = ROOT / "fixtures" / "basic_docs"
+FIXED_ZIP_TIME = (2026, 1, 1, 0, 0, 0)
 
 DOCUMENT_TEXT = {
     "txt": "Alpha Project kickoff notes for DocGraph local search.\nBudget owner: North Center.\n",
@@ -49,9 +50,9 @@ def write_docx(path: Path, body: str) -> None:
 </w:document>
 """
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr("[Content_Types].xml", DOCX_CONTENT_TYPES)
-        archive.writestr("_rels/.rels", DOCX_RELS)
-        archive.writestr("word/document.xml", document_xml)
+        write_zip_text(archive, "[Content_Types].xml", DOCX_CONTENT_TYPES)
+        write_zip_text(archive, "_rels/.rels", DOCX_RELS)
+        write_zip_text(archive, "word/document.xml", document_xml)
 
 
 def write_xlsx(path: Path) -> None:
@@ -74,11 +75,11 @@ def write_xlsx(path: Path) -> None:
 </worksheet>
 """
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr("[Content_Types].xml", XLSX_CONTENT_TYPES)
-        archive.writestr("_rels/.rels", XLSX_RELS)
-        archive.writestr("xl/workbook.xml", XLSX_WORKBOOK)
-        archive.writestr("xl/_rels/workbook.xml.rels", XLSX_WORKBOOK_RELS)
-        archive.writestr("xl/worksheets/sheet1.xml", sheet_xml)
+        write_zip_text(archive, "[Content_Types].xml", XLSX_CONTENT_TYPES)
+        write_zip_text(archive, "_rels/.rels", XLSX_RELS)
+        write_zip_text(archive, "xl/workbook.xml", XLSX_WORKBOOK)
+        write_zip_text(archive, "xl/_rels/workbook.xml.rels", XLSX_WORKBOOK_RELS)
+        write_zip_text(archive, "xl/worksheets/sheet1.xml", sheet_xml)
 
 
 def write_pptx(path: Path, body: str) -> None:
@@ -98,11 +99,18 @@ def write_pptx(path: Path, body: str) -> None:
 </p:sld>
 """
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr("[Content_Types].xml", PPTX_CONTENT_TYPES)
-        archive.writestr("_rels/.rels", PPTX_RELS)
-        archive.writestr("ppt/presentation.xml", PPTX_PRESENTATION)
-        archive.writestr("ppt/_rels/presentation.xml.rels", PPTX_PRESENTATION_RELS)
-        archive.writestr("ppt/slides/slide1.xml", slide_xml)
+        write_zip_text(archive, "[Content_Types].xml", PPTX_CONTENT_TYPES)
+        write_zip_text(archive, "_rels/.rels", PPTX_RELS)
+        write_zip_text(archive, "ppt/presentation.xml", PPTX_PRESENTATION)
+        write_zip_text(archive, "ppt/_rels/presentation.xml.rels", PPTX_PRESENTATION_RELS)
+        write_zip_text(archive, "ppt/slides/slide1.xml", slide_xml)
+
+
+def write_zip_text(archive: zipfile.ZipFile, name: str, text: str) -> None:
+    info = zipfile.ZipInfo(name, date_time=FIXED_ZIP_TIME)
+    info.compress_type = zipfile.ZIP_DEFLATED
+    info.external_attr = 0o644 << 16
+    archive.writestr(info, text.encode("utf-8"))
 
 
 def write_pdf(path: Path, body: str) -> None:
@@ -269,4 +277,3 @@ PPTX_PRESENTATION_RELS = """<?xml version="1.0" encoding="UTF-8" standalone="yes
 
 if __name__ == "__main__":
     main()
-
