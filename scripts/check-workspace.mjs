@@ -43,6 +43,7 @@ const requiredPaths = [
   "apps/sidecar/docgraph_sidecar/parser/errors.py",
   "apps/sidecar/docgraph_sidecar/parser/registry.py",
   "apps/sidecar/docgraph_sidecar/parser/text.py",
+  "apps/sidecar/docgraph_sidecar/parser/xlsx.py",
   "apps/sidecar/docgraph_sidecar/scanner/ignore_rules.py",
   "apps/sidecar/docgraph_sidecar/scanner/metadata.py",
   "apps/sidecar/docgraph_sidecar/migrations/001_init.sql",
@@ -76,6 +77,7 @@ const requiredPaths = [
   "apps/sidecar/tests/test_scan_jobs.py",
   "apps/sidecar/tests/test_tasks.py",
   "apps/sidecar/tests/test_text_parser.py",
+  "apps/sidecar/tests/test_xlsx_parser.py",
   "scripts/dev-placeholder.mjs",
 ];
 

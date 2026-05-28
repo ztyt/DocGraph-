@@ -126,6 +126,7 @@ class ParseResult:
     elements: tuple[ParsedDocumentElement, ...] = ()
     chunks: tuple[ParsedChunk, ...] = ()
     warnings: tuple[str, ...] = ()
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -134,6 +135,7 @@ class ParseResult:
             "elements": [element.to_dict() for element in self.elements],
             "chunks": [chunk.to_dict() for chunk in self.chunks],
             "warnings": list(self.warnings),
+            "metadata": self.metadata,
         }
 
 
