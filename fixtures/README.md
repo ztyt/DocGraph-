@@ -14,3 +14,9 @@ Planned fixture groups:
 
 Do not place private real-world documents in this directory.
 
+Generate the basic fixture set with:
+
+```powershell
+python scripts/generate-basic-fixtures.py
+```
+

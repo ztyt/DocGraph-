@@ -6,6 +6,7 @@
   "description": "Local-first document search and knowledge graph desktop app.",
   "scripts": {
     "dev": "node scripts/dev-placeholder.mjs",
+    "fixtures:basic": "python scripts/generate-basic-fixtures.py",
     "lint": "node scripts/check-workspace.mjs",
     "test": "node scripts/check-workspace.mjs && python -m unittest discover apps/sidecar/tests",
     "format:check": "node scripts/check-workspace.mjs"
@@ -16,4 +17,3 @@
   },
   "devDependencies": {}
 }
-

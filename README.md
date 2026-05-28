@@ -91,6 +91,9 @@ python -m unittest discover apps/sidecar/tests
 
 # Initialize the local SQLite database
 python apps/sidecar/app.py init-db
+
+# Regenerate the basic test fixture documents
+pnpm fixtures:basic
 ```
 
 ## Acceptance for the Current Skeleton

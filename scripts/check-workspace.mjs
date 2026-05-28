@@ -42,6 +42,16 @@ const requiredPaths = [
   "fixtures/README.md",
   "docs/README.md",
   "docs/database-migrations.md",
+  "scripts/generate-basic-fixtures.py",
+  "fixtures/basic_docs/expected_search.json",
+  "fixtures/basic_docs/alpha_notes.txt",
+  "fixtures/basic_docs/alpha_contract.docx",
+  "fixtures/basic_docs/alpha_budget.xlsx",
+  "fixtures/basic_docs/alpha_status.pptx",
+  "fixtures/basic_docs/alpha_brief.pdf",
+  "fixtures/basic_docs/empty.txt",
+  "fixtures/basic_docs/bad_file.bin",
+  "apps/sidecar/tests/test_fixtures.py",
   "scripts/dev-placeholder.mjs",
 ];
 
