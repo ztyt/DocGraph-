@@ -19,6 +19,7 @@ from docgraph_sidecar.core.snapshots import (
 )
 from docgraph_sidecar.indexer.fts import FtsIndexError, rebuild_fts
 from docgraph_sidecar.logging import configure_logging, log_event
+from docgraph_sidecar.retrieval.fts_search import FtsSearchError, parse_search_filters, search_fts
 from docgraph_sidecar.responses import error_response, ok_response, request_context
 from docgraph_sidecar.settings_store import SettingsStore, SettingsValidationError
 from docgraph_sidecar.workers.parse_worker import ParseWorker, ParseWorkerError
@@ -194,6 +195,46 @@ def create_app(settings_store: SettingsStore | None = None) -> FastAPI:
         log_event(
             "api.request",
             path="/api/files",
+            trace_id=context.trace_id,
+            status_code=200,
+            total=data["total"],
+        )
+        return ok_response(data, context)
+
+    @app.get("/api/search")
+    async def search(request: Request) -> Any:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        try:
+            filters = parse_search_filters(
+                {
+                    "q": request.query_params.get("q"),
+                    "type": request.query_params.get("type"),
+                    "source": request.query_params.get("source"),
+                    "modified_from": request.query_params.get("modified_from"),
+                    "modified_to": request.query_params.get("modified_to"),
+                    "time_from": request.query_params.get("time_from"),
+                    "time_to": request.query_params.get("time_to"),
+                    "limit": request.query_params.get("limit"),
+                    "offset": request.query_params.get("offset"),
+                }
+            )
+            data = search_fts(data_dir=store.data_dir, filters=filters).to_dict()
+        except FtsSearchError as exc:
+            return JSONResponse(
+                status_code=400,
+                content=error_response(
+                    code="SEARCH_QUERY_VALIDATION_ERROR",
+                    message=str(exc),
+                    retryable=False,
+                    details=exc.details,
+                    context=context,
+                ),
+            )
+
+        log_event(
+            "api.request",
+            path="/api/search",
             trace_id=context.trace_id,
             status_code=200,
             total=data["total"],

@@ -8,6 +8,8 @@ import type {
   FeatureFlagsPatch,
   HealthData,
   ScanJobData,
+  SearchData,
+  SearchQuery,
   SettingsData,
   SettingsPatch,
   SnapshotData,
@@ -105,4 +107,14 @@ export function listFiles(query: FileListQuery = {}) {
 
   const suffix = params.toString() ? `?${params.toString()}` : "";
   return request<FileListData>(`/api/files${suffix}`);
+}
+
+export function searchFiles(query: SearchQuery) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === null || value === "") continue;
+    params.set(key, String(value));
+  }
+
+  return request<SearchData>(`/api/search?${params.toString()}`);
 }

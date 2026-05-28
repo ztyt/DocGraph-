@@ -151,6 +151,51 @@ export interface FileListQuery {
   offset?: number;
 }
 
+export interface SearchMatchedChunk {
+  chunk_id: string;
+  heading: string | null;
+  snippet: string;
+  bm25_score: number;
+}
+
+export interface SearchResultItem {
+  file_id: string;
+  filename: string;
+  path: string;
+  extension: string | null;
+  source_type: string | null;
+  modified_time: string | null;
+  snippet: string;
+  bm25_score: number;
+  matched_chunks: SearchMatchedChunk[];
+}
+
+export interface SearchFilters {
+  q: string;
+  type: string | null;
+  source: string | null;
+  modified_from: string | null;
+  modified_to: string | null;
+  limit: number;
+  offset: number;
+}
+
+export interface SearchData {
+  items: SearchResultItem[];
+  total: number;
+  filters: SearchFilters;
+}
+
+export interface SearchQuery {
+  q: string;
+  type?: string;
+  source?: string;
+  modified_from?: string;
+  modified_to?: string;
+  limit?: number;
+  offset?: number;
+}
+
 export type TaskStatus = "queued" | "running" | "done" | "failed";
 
 export interface TaskData {
