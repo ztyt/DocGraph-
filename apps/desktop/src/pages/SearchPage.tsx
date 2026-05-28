@@ -1,8 +1,7 @@
 import type { ApiEnvelope, SearchData, SearchQuery, SearchResultItem } from "@docgraph/shared";
 import type { FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { searchFiles } from "../apiClient";
+import { openFile, revealFileInFolder, searchFiles } from "../apiClient";
 import { PageLayout } from "../components/system/PlaceholderPage";
 import { PageState } from "../components/system/PageState";
 
@@ -11,6 +10,13 @@ type SearchViewState =
   | { status: "loading"; query: SearchQuery }
   | { status: "error"; message: string }
   | { status: "success"; envelope: ApiEnvelope<SearchData> & { data: SearchData } };
+
+type FileActionStatus = "idle" | "running" | "success" | "error";
+
+interface FileActionState {
+  status: FileActionStatus;
+  message: string;
+}
 
 const DEFAULT_SEARCH: SearchQuery = {
   q: "",
@@ -27,6 +33,7 @@ export function SearchPage() {
   const [draft, setDraft] = useState<SearchQuery>(DEFAULT_SEARCH);
   const [query, setQuery] = useState<SearchQuery | null>(null);
   const [state, setState] = useState<SearchViewState>({ status: "empty", reason: "idle" });
+  const [fileActions, setFileActions] = useState<Record<string, FileActionState>>({});
 
   useEffect(() => {
     function handleShortcut(event: KeyboardEvent) {
@@ -95,6 +102,33 @@ export function SearchPage() {
     const nextQuery = { ...baseQuery, offset };
     setDraft(nextQuery);
     setQuery(nextQuery);
+  }
+
+  async function runFileAction(fileId: string, action: "open" | "reveal") {
+    const key = fileActionKey(fileId, action);
+    setFileActions((current) => ({
+      ...current,
+      [key]: { status: "running", message: "Starting" },
+    }));
+    try {
+      const envelope = action === "open" ? await openFile(fileId) : await revealFileInFolder(fileId);
+      const result = envelope.data;
+      setFileActions((current) => ({
+        ...current,
+        [key]: {
+          status: "success",
+          message: result?.status === "started" ? "Started" : "Done",
+        },
+      }));
+    } catch (error) {
+      setFileActions((current) => ({
+        ...current,
+        [key]: {
+          status: "error",
+          message: error instanceof Error ? error.message : "Action failed",
+        },
+      }));
+    }
   }
 
   return (
@@ -166,7 +200,7 @@ export function SearchPage() {
             </div>
           </aside>
 
-          <SearchResultPanel state={state} onPage={goToPage} />
+          <SearchResultPanel state={state} fileActions={fileActions} onFileAction={runFileAction} onPage={goToPage} />
         </div>
       </section>
     </PageLayout>
@@ -175,9 +209,13 @@ export function SearchPage() {
 
 function SearchResultPanel({
   state,
+  fileActions,
+  onFileAction,
   onPage,
 }: {
   state: SearchViewState;
+  fileActions: Record<string, FileActionState>;
+  onFileAction: (fileId: string, action: "open" | "reveal") => Promise<void>;
   onPage: (offset: number) => void;
 }) {
   if (state.status === "loading") {
@@ -202,16 +240,28 @@ function SearchResultPanel({
     );
   }
 
-  return <SearchResults data={state.envelope.data} traceId={state.envelope.trace_id} onPage={onPage} />;
+  return (
+    <SearchResults
+      data={state.envelope.data}
+      fileActions={fileActions}
+      traceId={state.envelope.trace_id}
+      onFileAction={onFileAction}
+      onPage={onPage}
+    />
+  );
 }
 
 function SearchResults({
   data,
+  fileActions,
   traceId,
+  onFileAction,
   onPage,
 }: {
   data: SearchData;
+  fileActions: Record<string, FileActionState>;
   traceId: string;
+  onFileAction: (fileId: string, action: "open" | "reveal") => Promise<void>;
   onPage: (offset: number) => void;
 }) {
   const nextOffset = data.filters.offset + data.filters.limit;
@@ -230,7 +280,13 @@ function SearchResults({
       </div>
       <div className="search-results-list">
         {data.items.map((item) => (
-          <SearchResultCard key={item.file_id} item={item} />
+          <SearchResultCard
+            key={item.file_id}
+            item={item}
+            openState={fileActions[fileActionKey(item.file_id, "open")]}
+            revealState={fileActions[fileActionKey(item.file_id, "reveal")]}
+            onFileAction={onFileAction}
+          />
         ))}
       </div>
       <div className="search-pagination">
@@ -258,7 +314,17 @@ function SearchResults({
   );
 }
 
-function SearchResultCard({ item }: { item: SearchResultItem }) {
+function SearchResultCard({
+  item,
+  openState,
+  revealState,
+  onFileAction,
+}: {
+  item: SearchResultItem;
+  openState?: FileActionState;
+  revealState?: FileActionState;
+  onFileAction: (fileId: string, action: "open" | "reveal") => Promise<void>;
+}) {
   return (
     <article className="search-result-card">
       <div className="search-result-title-row">
@@ -266,10 +332,26 @@ function SearchResultCard({ item }: { item: SearchResultItem }) {
           <h3>{item.filename}</h3>
           <p>{item.path}</p>
         </div>
-        <Link className="secondary-button search-open-button" to={`/files/${encodeURIComponent(item.file_id)}`}>
-          Open
-        </Link>
+        <div className="file-action-cluster">
+          <button
+            className="secondary-button search-open-button"
+            type="button"
+            disabled={openState?.status === "running"}
+            onClick={() => void onFileAction(item.file_id, "open")}
+          >
+            Open
+          </button>
+          <button
+            className="secondary-button search-open-button"
+            type="button"
+            disabled={revealState?.status === "running"}
+            onClick={() => void onFileAction(item.file_id, "reveal")}
+          >
+            Folder
+          </button>
+        </div>
       </div>
+      <FileActionMessage openState={openState} revealState={revealState} />
       <div className="search-result-snippet">{renderSnippet(item.snippet)}</div>
       <dl className="search-result-meta">
         <div>
@@ -298,6 +380,18 @@ function SearchResultCard({ item }: { item: SearchResultItem }) {
       </div>
     </article>
   );
+}
+
+function FileActionMessage({
+  openState,
+  revealState,
+}: {
+  openState?: FileActionState;
+  revealState?: FileActionState;
+}) {
+  const visibleState = revealState && revealState.status !== "idle" ? revealState : openState;
+  if (!visibleState || visibleState.status === "idle") return null;
+  return <p className={`file-action-message ${visibleState.status}`}>{visibleState.message}</p>;
 }
 
 function renderSnippet(value: string) {
@@ -341,4 +435,8 @@ function dateStart(value: string) {
 
 function dateEnd(value: string) {
   return value ? `${value}T23:59:59+00:00` : "";
+}
+
+function fileActionKey(fileId: string, action: "open" | "reveal") {
+  return `${fileId}:${action}`;
 }

@@ -9,6 +9,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from docgraph_sidecar import __version__
+from docgraph_sidecar.core.file_actions import (
+    FileActionError,
+    FileActionLauncher,
+    FileActionService,
+)
 from docgraph_sidecar.core.files import FileCatalog, FileCatalogError, parse_file_list_filters
 from docgraph_sidecar.core.scan_jobs import ScanJobError, ScanJobStore
 from docgraph_sidecar.core.snapshots import (
@@ -28,10 +33,15 @@ from docgraph_sidecar.workers.parse_worker import ParseWorker, ParseWorkerError
 SERVICE_NAME = "docgraph-sidecar"
 
 
-def create_app(settings_store: SettingsStore | None = None) -> FastAPI:
+def create_app(
+    settings_store: SettingsStore | None = None,
+    *,
+    file_action_launcher: FileActionLauncher | None = None,
+) -> FastAPI:
     configure_logging()
     app = FastAPI(title="DocGraph Sidecar", version=__version__)
     app.state.settings_store = settings_store or SettingsStore()
+    app.state.file_action_launcher = file_action_launcher
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["tauri://localhost"],
@@ -238,6 +248,49 @@ def create_app(settings_store: SettingsStore | None = None) -> FastAPI:
             trace_id=context.trace_id,
             status_code=200,
             total=data["total"],
+        )
+        return ok_response(data, context)
+
+    @app.post("/api/files/{file_id}/open")
+    async def open_file(file_id: str, request: Request) -> Any:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        try:
+            data = FileActionService(
+                data_dir=store.data_dir,
+                launcher=request.app.state.file_action_launcher,
+            ).open_file(file_id).to_dict()
+        except FileActionError as exc:
+            return _file_action_error_response(exc, context)
+
+        log_event(
+            "api.request",
+            path=f"/api/files/{file_id}/open",
+            trace_id=context.trace_id,
+            status_code=200,
+            file_id=file_id,
+        )
+        return ok_response(data, context)
+
+    @app.post("/api/files/{file_id}/reveal-in-folder")
+    @app.post("/api/files/{file_id}/reveal_in_folder")
+    async def reveal_file_in_folder(file_id: str, request: Request) -> Any:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        try:
+            data = FileActionService(
+                data_dir=store.data_dir,
+                launcher=request.app.state.file_action_launcher,
+            ).reveal_in_folder(file_id).to_dict()
+        except FileActionError as exc:
+            return _file_action_error_response(exc, context)
+
+        log_event(
+            "api.request",
+            path=f"/api/files/{file_id}/reveal-in-folder",
+            trace_id=context.trace_id,
+            status_code=200,
+            file_id=file_id,
         )
         return ok_response(data, context)
 
@@ -516,6 +569,20 @@ def _scan_job_error_response(exc: ScanJobError, context: Any) -> JSONResponse:
 
 
 def _parse_worker_error_response(exc: ParseWorkerError, context: Any) -> JSONResponse:
+    status_code = 404 if exc.error_code == "FILE_NOT_FOUND" else 400
+    return JSONResponse(
+        status_code=status_code,
+        content=error_response(
+            code=exc.error_code,
+            message=str(exc),
+            retryable=exc.retryable,
+            details=exc.details,
+            context=context,
+        ),
+    )
+
+
+def _file_action_error_response(exc: FileActionError, context: Any) -> JSONResponse:
     status_code = 404 if exc.error_code == "FILE_NOT_FOUND" else 400
     return JSONResponse(
         status_code=status_code,

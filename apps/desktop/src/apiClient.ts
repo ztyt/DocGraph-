@@ -2,6 +2,7 @@ import type {
   ApiEnvelope,
   CreateScanJobRequest,
   DatabaseStatusData,
+  FileActionData,
   FileListData,
   FileListQuery,
   FeatureFlagsData,
@@ -107,6 +108,21 @@ export function listFiles(query: FileListQuery = {}) {
 
   const suffix = params.toString() ? `?${params.toString()}` : "";
   return request<FileListData>(`/api/files${suffix}`);
+}
+
+export function openFile(fileId: string) {
+  return request<FileActionData>(`/api/files/${encodeURIComponent(fileId)}/open`, {
+    method: "POST",
+  });
+}
+
+export function revealFileInFolder(fileId: string) {
+  return request<FileActionData>(
+    `/api/files/${encodeURIComponent(fileId)}/reveal-in-folder`,
+    {
+      method: "POST",
+    },
+  );
 }
 
 export function searchFiles(query: SearchQuery) {

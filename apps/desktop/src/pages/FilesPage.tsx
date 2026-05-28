@@ -2,7 +2,7 @@ import type { ApiEnvelope, FileListData, FileListItem, FileListQuery } from "@do
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { listFiles } from "../apiClient";
+import { listFiles, openFile, revealFileInFolder } from "../apiClient";
 import { PageLayout } from "../components/system/PlaceholderPage";
 import { PageState } from "../components/system/PageState";
 
@@ -11,6 +11,13 @@ type FilesViewState =
   | { status: "empty"; query: FileListQuery }
   | { status: "error"; message: string }
   | { status: "success"; envelope: ApiEnvelope<FileListData> & { data: FileListData } };
+
+type FileActionStatus = "idle" | "running" | "success" | "error";
+
+interface FileActionState {
+  status: FileActionStatus;
+  message: string;
+}
 
 const DEFAULT_QUERY: FileListQuery = {
   type: "",
@@ -25,6 +32,7 @@ export function FilesPage() {
   const [draft, setDraft] = useState<FileListQuery>(DEFAULT_QUERY);
   const [query, setQuery] = useState<FileListQuery>(DEFAULT_QUERY);
   const [state, setState] = useState<FilesViewState>({ status: "loading" });
+  const [fileActions, setFileActions] = useState<Record<string, FileActionState>>({});
 
   useEffect(() => {
     let isMounted = true;
@@ -63,6 +71,33 @@ export function FilesPage() {
   function handleReset() {
     setDraft(DEFAULT_QUERY);
     setQuery(DEFAULT_QUERY);
+  }
+
+  async function runFileAction(fileId: string, action: "open" | "reveal") {
+    const key = fileActionKey(fileId, action);
+    setFileActions((current) => ({
+      ...current,
+      [key]: { status: "running", message: "Starting" },
+    }));
+    try {
+      const envelope = action === "open" ? await openFile(fileId) : await revealFileInFolder(fileId);
+      const result = envelope.data;
+      setFileActions((current) => ({
+        ...current,
+        [key]: {
+          status: "success",
+          message: result?.status === "started" ? "Started" : "Done",
+        },
+      }));
+    } catch (error) {
+      setFileActions((current) => ({
+        ...current,
+        [key]: {
+          status: "error",
+          message: error instanceof Error ? error.message : "Action failed",
+        },
+      }));
+    }
   }
 
   return (
@@ -122,13 +157,21 @@ export function FilesPage() {
           </div>
         </form>
 
-        <FilesResultPanel state={state} />
+        <FilesResultPanel state={state} fileActions={fileActions} onFileAction={runFileAction} />
       </section>
     </PageLayout>
   );
 }
 
-function FilesResultPanel({ state }: { state: FilesViewState }) {
+function FilesResultPanel({
+  state,
+  fileActions,
+  onFileAction,
+}: {
+  state: FilesViewState;
+  fileActions: Record<string, FileActionState>;
+  onFileAction: (fileId: string, action: "open" | "reveal") => Promise<void>;
+}) {
   if (state.status === "loading") {
     return <PageState tone="loading" title="Loading files" body="Reading local file metadata." />;
   }
@@ -151,10 +194,27 @@ function FilesResultPanel({ state }: { state: FilesViewState }) {
     return <PageState tone="error" title="Files unavailable" body={state.message} />;
   }
 
-  return <FilesTable data={state.envelope.data} traceId={state.envelope.trace_id} />;
+  return (
+    <FilesTable
+      data={state.envelope.data}
+      fileActions={fileActions}
+      traceId={state.envelope.trace_id}
+      onFileAction={onFileAction}
+    />
+  );
 }
 
-function FilesTable({ data, traceId }: { data: FileListData; traceId: string }) {
+function FilesTable({
+  data,
+  fileActions,
+  traceId,
+  onFileAction,
+}: {
+  data: FileListData;
+  fileActions: Record<string, FileActionState>;
+  traceId: string;
+  onFileAction: (fileId: string, action: "open" | "reveal") => Promise<void>;
+}) {
   return (
     <section className="files-table-panel">
       <div className="files-table-header">
@@ -174,11 +234,18 @@ function FilesTable({ data, traceId }: { data: FileListData; traceId: string }) 
               <th>Size</th>
               <th>Modified</th>
               <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {data.items.map((file) => (
-              <FileRow key={file.file_id} file={file} />
+              <FileRow
+                key={file.file_id}
+                file={file}
+                openState={fileActions[fileActionKey(file.file_id, "open")]}
+                revealState={fileActions[fileActionKey(file.file_id, "reveal")]}
+                onFileAction={onFileAction}
+              />
             ))}
           </tbody>
         </table>
@@ -187,7 +254,17 @@ function FilesTable({ data, traceId }: { data: FileListData; traceId: string }) 
   );
 }
 
-function FileRow({ file }: { file: FileListItem }) {
+function FileRow({
+  file,
+  openState,
+  revealState,
+  onFileAction,
+}: {
+  file: FileListItem;
+  openState?: FileActionState;
+  revealState?: FileActionState;
+  onFileAction: (fileId: string, action: "open" | "reveal") => Promise<void>;
+}) {
   return (
     <tr>
       <td>
@@ -200,8 +277,41 @@ function FileRow({ file }: { file: FileListItem }) {
       <td>
         <span className={`file-status ${file.file_status}`}>{file.file_status}</span>
       </td>
+      <td>
+        <div className="table-file-actions">
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={openState?.status === "running"}
+            onClick={() => void onFileAction(file.file_id, "open")}
+          >
+            Open
+          </button>
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={revealState?.status === "running"}
+            onClick={() => void onFileAction(file.file_id, "reveal")}
+          >
+            Folder
+          </button>
+        </div>
+        <FileActionMessage openState={openState} revealState={revealState} />
+      </td>
     </tr>
   );
+}
+
+function FileActionMessage({
+  openState,
+  revealState,
+}: {
+  openState?: FileActionState;
+  revealState?: FileActionState;
+}) {
+  const visibleState = revealState && revealState.status !== "idle" ? revealState : openState;
+  if (!visibleState || visibleState.status === "idle") return null;
+  return <p className={`file-action-message ${visibleState.status}`}>{visibleState.message}</p>;
 }
 
 function typeLabel(file: FileListItem) {
@@ -226,4 +336,8 @@ function formatDate(value: string | null) {
 
 function hasActiveFilters(query: FileListQuery) {
   return Boolean(query.keyword || query.type || query.status || query.source);
+}
+
+function fileActionKey(fileId: string, action: "open" | "reveal") {
+  return `${fileId}:${action}`;
 }

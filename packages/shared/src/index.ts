@@ -151,6 +151,15 @@ export interface FileListQuery {
   offset?: number;
 }
 
+export type FileActionKind = "open" | "reveal_in_folder";
+
+export interface FileActionData {
+  file_id: string;
+  path: string;
+  action: FileActionKind;
+  status: "started";
+}
+
 export interface SearchMatchedChunk {
   chunk_id: string;
   heading: string | null;

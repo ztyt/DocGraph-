@@ -627,6 +627,32 @@ p {
   text-decoration: none;
 }
 
+.file-action-cluster,
+.table-file-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.file-action-message {
+  margin-top: 8px;
+  color: #52616f;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.file-action-message.success {
+  color: #205c34;
+}
+
+.file-action-message.error {
+  color: #9f1f17;
+}
+
+.file-action-message.running {
+  color: #8a5b12;
+}
+
 .search-result-snippet {
   padding: 12px;
   border-left: 3px solid #82a7b6;
@@ -772,7 +798,7 @@ p {
 
 .files-table {
   width: 100%;
-  min-width: 760px;
+  min-width: 900px;
   border-collapse: collapse;
 }
 
@@ -799,7 +825,8 @@ p {
 .files-table td:nth-child(3),
 .files-table td:nth-child(4),
 .files-table td:nth-child(5),
-.files-table td:nth-child(6) {
+.files-table td:nth-child(6),
+.files-table td:nth-child(7) {
   white-space: nowrap;
 }
 
