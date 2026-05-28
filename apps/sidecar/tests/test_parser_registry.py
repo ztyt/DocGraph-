@@ -116,6 +116,7 @@ class ParserRegistryTest(unittest.TestCase):
         self.assertEqual(registry.get_for_extension("docx").name, "docx")
         self.assertEqual(registry.get_for_extension("xlsx").name, "xlsx")
         self.assertEqual(registry.get_for_extension("pptx").name, "pptx")
+        self.assertEqual(registry.get_for_extension("pdf").name, "pdf")
 
 
 if __name__ == "__main__":

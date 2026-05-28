@@ -10,6 +10,7 @@ from docgraph_sidecar.parser.base import (
 )
 from docgraph_sidecar.parser.docx import DocxParser
 from docgraph_sidecar.parser.errors import parse_with_error_recording, record_parse_error
+from docgraph_sidecar.parser.pdf import PdfParser
 from docgraph_sidecar.parser.pptx import PptxParser
 from docgraph_sidecar.parser.registry import ParserRegistry, ParserRegistryError, default_parser_registry
 from docgraph_sidecar.parser.text import TextMarkdownParser
@@ -23,6 +24,7 @@ __all__ = [
     "ParseResult",
     "ParserError",
     "DocxParser",
+    "PdfParser",
     "PptxParser",
     "ParserRegistry",
     "ParserRegistryError",
