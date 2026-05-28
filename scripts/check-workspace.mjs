@@ -10,10 +10,14 @@ const requiredPaths = [
   "package.json",
   "pnpm-workspace.yaml",
   "apps/desktop/package.json",
+  "apps/desktop/src/apiClient.ts",
   "apps/desktop/src/App.tsx",
   "apps/desktop/src-tauri/tauri.conf.json",
   "apps/sidecar/pyproject.toml",
   "apps/sidecar/app.py",
+  "apps/sidecar/docgraph_sidecar/api.py",
+  "apps/sidecar/docgraph_sidecar/logging.py",
+  "apps/sidecar/docgraph_sidecar/responses.py",
   "apps/sidecar/tests/test_skeleton.py",
   "packages/shared/package.json",
   "packages/shared/src/index.ts",
@@ -56,4 +60,3 @@ if (missing.length > 0 || missingScripts.length > 0) {
 }
 
 console.log("Workspace skeleton check passed.");
-

@@ -1,10 +1,14 @@
-from docgraph_sidecar import __version__
+import uvicorn
 
 
 def main() -> None:
-    print(f"DocGraph sidecar skeleton {__version__}")
+    uvicorn.run(
+        "docgraph_sidecar.api:app",
+        host="127.0.0.1",
+        port=8765,
+        log_level="info",
+    )
 
 
 if __name__ == "__main__":
     main()
-
