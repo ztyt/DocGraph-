@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from docgraph_sidecar import __version__
+from docgraph_sidecar.core.scan_jobs import ScanJobError, ScanJobStore
 from docgraph_sidecar.core.snapshots import (
     SnapshotError,
     create_snapshot,
@@ -217,6 +218,135 @@ def create_app(settings_store: SettingsStore | None = None) -> FastAPI:
         )
         return ok_response(data, context)
 
+    @app.post("/api/scan/jobs")
+    async def create_scan_job(request: Request) -> Any:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        try:
+            payload = await request.json()
+            if not isinstance(payload, dict):
+                raise ScanJobError(
+                    "Scan job payload must be an object.",
+                    details={"payload": "Expected a JSON object."},
+                )
+            root_path = payload.get("root_path")
+            if not isinstance(root_path, str):
+                raise ScanJobError(
+                    "Scan root path is required.",
+                    details={"root_path": "Expected a string path."},
+                )
+            compute_hash = payload.get("compute_hash", False)
+            if not isinstance(compute_hash, bool):
+                raise ScanJobError(
+                    "compute_hash must be a boolean.",
+                    details={"compute_hash": "Expected true or false."},
+                )
+            priority = payload.get("priority", 100)
+            if isinstance(priority, bool) or not isinstance(priority, int):
+                raise ScanJobError(
+                    "priority must be an integer.",
+                    details={"priority": "Expected an integer."},
+                )
+
+            data = ScanJobStore(data_dir=store.data_dir).create(
+                root_path,
+                compute_hash=compute_hash,
+                priority=priority,
+            ).to_dict()
+        except ValueError:
+            return JSONResponse(
+                status_code=400,
+                content=error_response(
+                    code="SCAN_JOB_VALIDATION_ERROR",
+                    message="Scan job payload must be valid JSON.",
+                    retryable=False,
+                    details={"payload": "Invalid JSON."},
+                    context=context,
+                ),
+            )
+        except ScanJobError as exc:
+            return JSONResponse(
+                status_code=400,
+                content=error_response(
+                    code="SCAN_JOB_VALIDATION_ERROR",
+                    message=str(exc),
+                    retryable=False,
+                    details=exc.details,
+                    context=context,
+                ),
+            )
+
+        log_event(
+            "api.request",
+            path="/api/scan/jobs",
+            trace_id=context.trace_id,
+            status_code=200,
+            job_id=data["job_id"],
+        )
+        return ok_response(data, context)
+
+    @app.get("/api/scan/jobs/{job_id}")
+    async def get_scan_job(job_id: str, request: Request) -> Any:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        data = ScanJobStore(data_dir=store.data_dir).get(job_id)
+        if data is None:
+            return JSONResponse(
+                status_code=404,
+                content=error_response(
+                    code="SCAN_JOB_NOT_FOUND",
+                    message="Scan job not found.",
+                    retryable=False,
+                    details={"job_id": job_id},
+                    context=context,
+                ),
+            )
+
+        log_event(
+            "api.request",
+            path=f"/api/scan/jobs/{job_id}",
+            trace_id=context.trace_id,
+            status_code=200,
+            job_id=job_id,
+        )
+        return ok_response(data.to_dict(), context)
+
+    @app.post("/api/scan/jobs/{job_id}/pause")
+    async def pause_scan_job(job_id: str, request: Request) -> Any:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        try:
+            data = ScanJobStore(data_dir=store.data_dir).pause(job_id).to_dict()
+        except ScanJobError as exc:
+            return _scan_job_error_response(exc, context)
+
+        log_event(
+            "api.request",
+            path=f"/api/scan/jobs/{job_id}/pause",
+            trace_id=context.trace_id,
+            status_code=200,
+            job_id=job_id,
+        )
+        return ok_response(data, context)
+
+    @app.post("/api/scan/jobs/{job_id}/resume")
+    async def resume_scan_job(job_id: str, request: Request) -> Any:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        try:
+            data = ScanJobStore(data_dir=store.data_dir).resume(job_id).to_dict()
+        except ScanJobError as exc:
+            return _scan_job_error_response(exc, context)
+
+        log_event(
+            "api.request",
+            path=f"/api/scan/jobs/{job_id}/resume",
+            trace_id=context.trace_id,
+            status_code=200,
+            job_id=job_id,
+        )
+        return ok_response(data, context)
+
     @app.exception_handler(Exception)
     async def unhandled_exception(request: Request, exc: Exception) -> JSONResponse:
         context = request_context(request)
@@ -237,6 +367,21 @@ def create_app(settings_store: SettingsStore | None = None) -> FastAPI:
         )
 
     return app
+
+
+def _scan_job_error_response(exc: ScanJobError, context: Any) -> JSONResponse:
+    details = exc.details
+    missing = str(exc).casefold().endswith("not found.")
+    return JSONResponse(
+        status_code=404 if missing else 400,
+        content=error_response(
+            code="SCAN_JOB_NOT_FOUND" if missing else "SCAN_JOB_STATE_ERROR",
+            message=str(exc),
+            retryable=False,
+            details=details,
+            context=context,
+        ),
+    )
 
 
 app = create_app()

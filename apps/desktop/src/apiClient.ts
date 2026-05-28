@@ -1,9 +1,11 @@
 import type {
   ApiEnvelope,
+  CreateScanJobRequest,
   DatabaseStatusData,
   FeatureFlagsData,
   FeatureFlagsPatch,
   HealthData,
+  ScanJobData,
   SettingsData,
   SettingsPatch,
   SnapshotData,
@@ -68,6 +70,26 @@ export function createDatabaseSnapshot() {
 
 export function restoreDatabaseSnapshot(snapshotId: string) {
   return request<SnapshotData>(`/api/db/restore/${encodeURIComponent(snapshotId)}`, {
+    method: "POST",
+  });
+}
+
+export function createScanJob(payload: CreateScanJobRequest) {
+  return request<ScanJobData>("/api/scan/jobs", { method: "POST", body: payload });
+}
+
+export function getScanJob(jobId: string) {
+  return request<ScanJobData>(`/api/scan/jobs/${encodeURIComponent(jobId)}`);
+}
+
+export function pauseScanJob(jobId: string) {
+  return request<ScanJobData>(`/api/scan/jobs/${encodeURIComponent(jobId)}/pause`, {
+    method: "POST",
+  });
+}
+
+export function resumeScanJob(jobId: string) {
+  return request<ScanJobData>(`/api/scan/jobs/${encodeURIComponent(jobId)}/resume`, {
     method: "POST",
   });
 }

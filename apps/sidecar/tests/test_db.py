@@ -33,11 +33,17 @@ class DatabaseMigrationTest(unittest.TestCase):
         first = initialize_database(data_dir=self.data_dir)
         second = initialize_database(data_dir=self.data_dir)
 
-        self.assertEqual(first.applied, ("001_init", "002_v4_schema", "003_task_queue_contract"))
+        self.assertEqual(
+            first.applied,
+            ("001_init", "002_v4_schema", "003_task_queue_contract", "004_scan_jobs"),
+        )
         self.assertEqual(first.skipped, ())
         self.assertEqual(second.applied, ())
-        self.assertEqual(second.skipped, ("001_init", "002_v4_schema", "003_task_queue_contract"))
-        self.assertEqual(second.schema_version, "003_task_queue_contract")
+        self.assertEqual(
+            second.skipped,
+            ("001_init", "002_v4_schema", "003_task_queue_contract", "004_scan_jobs"),
+        )
+        self.assertEqual(second.schema_version, "004_scan_jobs")
         self.assertTrue(first.db_path.exists())
 
     def test_connection_pragmas_are_configured(self) -> None:
@@ -64,10 +70,11 @@ class DatabaseMigrationTest(unittest.TestCase):
         finally:
             connection.close()
 
-        self.assertEqual(meta["schema_version"], "003_task_queue_contract")
+        self.assertEqual(meta["schema_version"], "004_scan_jobs")
         self.assertTrue(meta[f"{MIGRATION_PREFIX}001_init"])
         self.assertTrue(meta[f"{MIGRATION_PREFIX}002_v4_schema"])
         self.assertTrue(meta[f"{MIGRATION_PREFIX}003_task_queue_contract"])
+        self.assertTrue(meta[f"{MIGRATION_PREFIX}004_scan_jobs"])
 
     def test_v4_schema_creates_required_tables(self) -> None:
         initialize_database(data_dir=self.data_dir)
@@ -88,6 +95,7 @@ class DatabaseMigrationTest(unittest.TestCase):
             "eval_runs",
             "api_logs",
             "snapshots",
+            "scan_jobs",
         }
         connection = connect(data_dir=self.data_dir)
         try:
@@ -183,14 +191,14 @@ class DatabaseMigrationTest(unittest.TestCase):
             text=True,
         )
 
-        self.assertIn('"schema_version": "003_task_queue_contract"', result.stdout)
+        self.assertIn('"schema_version": "004_scan_jobs"', result.stdout)
         self.assertTrue((self.data_dir / "docgraph.sqlite").exists())
 
     def test_database_status_initializes_database(self) -> None:
         status = database_status(data_dir=self.data_dir)
 
         self.assertTrue(status.exists)
-        self.assertEqual(status.schema_version, "003_task_queue_contract")
+        self.assertEqual(status.schema_version, "004_scan_jobs")
         self.assertEqual(status.snapshot_count, 0)
         self.assertGreater(status.size_bytes, 0)
 

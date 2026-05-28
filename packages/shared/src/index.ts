@@ -80,3 +80,30 @@ export interface SnapshotData {
   status: "created" | "restored";
   created_at: string;
 }
+
+export type ScanJobStatus = "queued" | "running" | "paused" | "done" | "failed";
+
+export interface ScanJobData {
+  job_id: string;
+  task_id: string;
+  root_path: string;
+  normalized_root_path: string;
+  job_status: ScanJobStatus;
+  current_directory: string | null;
+  scanned_count: number;
+  failed_count: number;
+  ignored_count: number;
+  compute_hash: boolean;
+  error_message: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  paused_at: string | null;
+}
+
+export interface CreateScanJobRequest {
+  root_path: string;
+  compute_hash?: boolean;
+  priority?: number;
+}

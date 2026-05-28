@@ -7,6 +7,7 @@ DocGraph migrations are packaged under `apps/sidecar/docgraph_sidecar/migrations
 - `001_init`: creates `schema_meta`.
 - `002_v4_schema`: creates the V4 Alpha schema tables and indexes.
 - `003_task_queue_contract`: adds the explicit `retry_count` field and normalizes queued task status.
+- `004_scan_jobs`: records scan job state, progress counters, pause/resume timestamps, and the linked queue task.
 
 ## Apply
 
