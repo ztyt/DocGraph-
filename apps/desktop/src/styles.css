@@ -300,7 +300,8 @@ p {
 }
 
 .field select,
-.field input {
+.field input,
+.field textarea {
   width: 100%;
   min-height: 38px;
   padding: 0 10px;
@@ -309,6 +310,12 @@ p {
   color: #1f2933;
   background: #ffffff;
   font: inherit;
+}
+
+.field textarea {
+  min-height: 154px;
+  padding: 10px;
+  resize: vertical;
 }
 
 .toggle-row {
@@ -347,6 +354,175 @@ p {
 .primary-button:disabled {
   color: #6b7785;
   background: #d9e1e8;
+}
+
+.secondary-button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #bdc9d2;
+  border-radius: 6px;
+  color: #284958;
+  background: #ffffff;
+  font: inherit;
+  font-weight: 800;
+}
+
+.secondary-button:disabled {
+  color: #8a98a5;
+  background: #edf1f5;
+}
+
+.scan-workbench {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.scan-controls,
+.failure-panel {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid #d9e1e8;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.scan-toggle {
+  justify-content: flex-start;
+}
+
+.scan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.scan-status-stack {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.scan-progress {
+  min-width: 0;
+}
+
+.scan-progress.paused {
+  border-color: #dec384;
+}
+
+.scan-progress.failed {
+  border-color: #f2b8b5;
+  background: #fff8f7;
+}
+
+.progress-track {
+  position: relative;
+  height: 10px;
+  overflow: hidden;
+  margin: 16px 0 0;
+  border-radius: 999px;
+  background: #dfe7ed;
+}
+
+.progress-track span {
+  position: absolute;
+  inset: 0;
+  width: 42%;
+  border-radius: inherit;
+  background: #4d7f61;
+}
+
+.progress-track.queued span,
+.progress-track.running span {
+  animation: scan-progress-slide 1.8s ease-in-out infinite;
+}
+
+.progress-track.paused span {
+  width: 58%;
+  background: #b7791f;
+}
+
+.progress-track.done span {
+  width: 100%;
+}
+
+.progress-track.failed span {
+  width: 100%;
+  background: #b42318;
+}
+
+.scan-meta-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.failure-panel h2,
+.failure-panel ul {
+  margin: 0;
+}
+
+.failure-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.failure-panel-header h2 {
+  font-size: 1rem;
+}
+
+.failure-panel-header span {
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  color: #284958;
+  background: #edf3f4;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.failure-panel ul {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.failure-panel li {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid #efd2d0;
+  border-radius: 6px;
+  background: #fff8f7;
+}
+
+.failure-panel strong,
+.failure-panel span {
+  overflow-wrap: anywhere;
+}
+
+.failure-panel span {
+  color: #52616f;
+}
+
+@keyframes scan-progress-slide {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  50% {
+    transform: translateX(55%);
+  }
+
+  100% {
+    transform: translateX(260%);
+  }
 }
 
 @media (max-width: 760px) {
@@ -391,6 +567,11 @@ p {
   }
 
   .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .scan-workbench,
+  .scan-meta-grid {
     grid-template-columns: 1fr;
   }
 
