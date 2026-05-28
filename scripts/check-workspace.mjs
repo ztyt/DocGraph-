@@ -33,10 +33,12 @@ const requiredPaths = [
   "apps/sidecar/docgraph_sidecar/settings_store.py",
   "apps/sidecar/docgraph_sidecar/core/db.py",
   "apps/sidecar/docgraph_sidecar/core/snapshots.py",
+  "apps/sidecar/docgraph_sidecar/core/tasks.py",
   "apps/sidecar/docgraph_sidecar/scanner/ignore_rules.py",
   "apps/sidecar/docgraph_sidecar/scanner/metadata.py",
   "apps/sidecar/docgraph_sidecar/migrations/001_init.sql",
   "apps/sidecar/docgraph_sidecar/migrations/002_v4_schema.sql",
+  "apps/sidecar/docgraph_sidecar/migrations/003_task_queue_contract.sql",
   "apps/sidecar/tests/test_skeleton.py",
   "apps/sidecar/tests/test_db.py",
   "packages/shared/package.json",
@@ -56,6 +58,7 @@ const requiredPaths = [
   "apps/sidecar/tests/test_fixtures.py",
   "apps/sidecar/tests/test_ignore_rules.py",
   "apps/sidecar/tests/test_metadata_scanner.py",
+  "apps/sidecar/tests/test_tasks.py",
   "scripts/dev-placeholder.mjs",
 ];
 

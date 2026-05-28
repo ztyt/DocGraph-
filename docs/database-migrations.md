@@ -6,6 +6,7 @@ DocGraph migrations are packaged under `apps/sidecar/docgraph_sidecar/migrations
 
 - `001_init`: creates `schema_meta`.
 - `002_v4_schema`: creates the V4 Alpha schema tables and indexes.
+- `003_task_queue_contract`: adds the explicit `retry_count` field and normalizes queued task status.
 
 ## Apply
 
@@ -27,7 +28,7 @@ No destructive rollback migration is provided for `002_v4_schema` because this s
 Remove-Item .docgraph\schema-smoke\docgraph.sqlite
 ```
 
-After user data exists, rollback must be snapshot-based rather than table-dropping. The snapshot and restore workflow starts in `VC-007`.
+After user data exists, rollback must be snapshot-based rather than table-dropping. Use `POST /api/db/snapshot` before applying risky migrations and `POST /api/db/restore/{snapshot_id}` to return to a known database copy.
 
 ## Snapshots
 
@@ -47,4 +48,3 @@ snapshots/{snapshot_id}/settings.json
 ```
 
 Restore replaces the local index database with the selected snapshot and restores the snapshot settings file when present. SQLite WAL/SHM sidecar files are removed during restore so SQLite can recreate them cleanly.
-
