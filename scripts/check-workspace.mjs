@@ -30,6 +30,7 @@ const requiredPaths = [
   "apps/sidecar/docgraph_sidecar/api.py",
   "apps/sidecar/docgraph_sidecar/logging.py",
   "apps/sidecar/docgraph_sidecar/responses.py",
+  "apps/sidecar/docgraph_sidecar/settings_store.py",
   "apps/sidecar/tests/test_skeleton.py",
   "packages/shared/package.json",
   "packages/shared/src/index.ts",

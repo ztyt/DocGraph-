@@ -36,3 +36,28 @@ export interface SystemInfoData {
   platform_release: string;
   machine: string;
 }
+
+export type PrivacyMode = "local" | "half_cloud" | "cloud_enhanced";
+export type RetrievalBackend = "fts" | "rrf" | "vector";
+
+export interface SettingsData {
+  privacy_mode: PrivacyMode;
+  llm_enabled: boolean;
+  ocr_enabled: boolean;
+  vector_search_enabled: boolean;
+  watchdog_enabled: boolean;
+  retrieval_backend: RetrievalBackend;
+  graph_node_cap: number;
+  max_workers_parse: number;
+}
+
+export type SettingsPatch = Partial<SettingsData>;
+
+export interface FeatureFlagsData {
+  llm: boolean;
+  ocr: boolean;
+  vector_search: boolean;
+  watchdog: boolean;
+}
+
+export type FeatureFlagsPatch = Partial<FeatureFlagsData>;

@@ -11,14 +11,16 @@ from fastapi.responses import JSONResponse
 from docgraph_sidecar import __version__
 from docgraph_sidecar.logging import configure_logging, log_event
 from docgraph_sidecar.responses import error_response, ok_response, request_context
+from docgraph_sidecar.settings_store import SettingsStore, SettingsValidationError
 
 
 SERVICE_NAME = "docgraph-sidecar"
 
 
-def create_app() -> FastAPI:
+def create_app(settings_store: SettingsStore | None = None) -> FastAPI:
     configure_logging()
     app = FastAPI(title="DocGraph Sidecar", version=__version__)
+    app.state.settings_store = settings_store or SettingsStore()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["tauri://localhost"],
@@ -31,21 +33,102 @@ def create_app() -> FastAPI:
     @app.get("/api/health")
     async def health(request: Request) -> dict[str, Any]:
         context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        features = store.features()
         data = {
             "status": "ok",
             "service": SERVICE_NAME,
             "version": __version__,
             "mode": "local",
-            "features": {
-                "llm": False,
-                "ocr": False,
-                "vector_search": False,
-                "watchdog": False,
-            },
+            "features": features,
         }
         log_event(
             "api.request",
             path="/api/health",
+            trace_id=context.trace_id,
+            status_code=200,
+        )
+        return ok_response(data, context)
+
+    @app.get("/api/settings")
+    async def get_settings(request: Request) -> dict[str, Any]:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        data = store.load()
+        log_event(
+            "api.request",
+            path="/api/settings",
+            trace_id=context.trace_id,
+            status_code=200,
+        )
+        return ok_response(data, context)
+
+    @app.put("/api/settings")
+    async def put_settings(request: Request) -> Any:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        try:
+            payload = await request.json()
+            if not isinstance(payload, dict):
+                raise SettingsValidationError({"payload": "Settings payload must be an object."})
+            data = store.save(payload)
+        except SettingsValidationError as exc:
+            return JSONResponse(
+                status_code=400,
+                content=error_response(
+                    code="SETTINGS_VALIDATION_ERROR",
+                    message="Settings payload is invalid.",
+                    retryable=False,
+                    details=exc.details,
+                    context=context,
+                ),
+            )
+
+        log_event(
+            "api.request",
+            path="/api/settings",
+            trace_id=context.trace_id,
+            status_code=200,
+        )
+        return ok_response(data, context)
+
+    @app.get("/api/features")
+    async def get_features(request: Request) -> dict[str, Any]:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        data = store.features()
+        log_event(
+            "api.request",
+            path="/api/features",
+            trace_id=context.trace_id,
+            status_code=200,
+        )
+        return ok_response(data, context)
+
+    @app.put("/api/features")
+    async def put_features(request: Request) -> Any:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        try:
+            payload = await request.json()
+            if not isinstance(payload, dict):
+                raise SettingsValidationError({"payload": "Feature payload must be an object."})
+            data = store.save_features(payload)
+        except SettingsValidationError as exc:
+            return JSONResponse(
+                status_code=400,
+                content=error_response(
+                    code="FEATURE_VALIDATION_ERROR",
+                    message="Feature flag payload is invalid.",
+                    retryable=False,
+                    details=exc.details,
+                    context=context,
+                ),
+            )
+
+        log_event(
+            "api.request",
+            path="/api/features",
             trace_id=context.trace_id,
             status_code=200,
         )
