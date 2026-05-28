@@ -115,7 +115,8 @@ class ParserRegistry:
 
 def default_parser_registry() -> ParserRegistry:
     from docgraph_sidecar.parser.docx import DocxParser
+    from docgraph_sidecar.parser.pptx import PptxParser
     from docgraph_sidecar.parser.text import TextMarkdownParser
     from docgraph_sidecar.parser.xlsx import XlsxParser
 
-    return ParserRegistry([TextMarkdownParser(), DocxParser(), XlsxParser()])
+    return ParserRegistry([TextMarkdownParser(), DocxParser(), XlsxParser(), PptxParser()])
