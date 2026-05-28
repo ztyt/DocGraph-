@@ -1,0 +1,19 @@
+{
+  "name": "docgraph-v4",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "description": "Local-first document search and knowledge graph desktop app.",
+  "scripts": {
+    "dev": "node scripts/dev-placeholder.mjs",
+    "lint": "node scripts/check-workspace.mjs",
+    "test": "node scripts/check-workspace.mjs && python -m unittest discover apps/sidecar/tests",
+    "format:check": "node scripts/check-workspace.mjs"
+  },
+  "engines": {
+    "node": ">=22",
+    "python": ">=3.11"
+  },
+  "devDependencies": {}
+}
+

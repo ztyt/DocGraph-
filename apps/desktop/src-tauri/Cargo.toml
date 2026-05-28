@@ -1,0 +1,12 @@
+[package]
+name = "docgraph-desktop"
+version = "0.0.0"
+description = "DocGraph V4 desktop shell"
+edition = "2021"
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+

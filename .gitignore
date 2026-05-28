@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Build outputs
+dist/
+build/
+target/
+.turbo/
+
+# Local runtime data
+.docgraph/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Logs and diagnostics
+*.log
+diagnostics/
+
+# Local Codex launcher helpers
+codex_proxy_launcher_*.bat
+codex_path.txt
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
