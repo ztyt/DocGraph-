@@ -88,6 +88,9 @@ pnpm format:check
 
 # Run sidecar tests only without installing dev dependencies
 python -m unittest discover apps/sidecar/tests
+
+# Initialize the local SQLite database
+python apps/sidecar/app.py init-db
 ```
 
 ## Acceptance for the Current Skeleton
