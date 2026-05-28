@@ -26,6 +26,7 @@ a {
 }
 
 .sidebar {
+  min-width: 0;
   min-height: 100vh;
   padding: 20px 16px;
   border-right: 1px solid #d8e0e6;
@@ -70,6 +71,7 @@ p {
 }
 
 .nav-list {
+  min-width: 0;
   display: grid;
   gap: 4px;
 }
@@ -516,6 +518,206 @@ p {
   gap: 16px;
 }
 
+.search-workbench {
+  display: grid;
+  gap: 16px;
+}
+
+.search-topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 20px;
+  border: 1px solid #d9e1e8;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.search-query-field input {
+  min-height: 44px;
+  font-size: 1rem;
+}
+
+.search-main-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.search-filter-panel {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid #d9e1e8;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.search-filter-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.search-results-panel {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid #d9e1e8;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.search-results-header,
+.search-result-title-row,
+.search-pagination {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.search-results-header h2 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.search-results-header span {
+  max-width: 260px;
+  overflow-wrap: anywhere;
+  color: #6b7785;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.search-results-list {
+  display: grid;
+  gap: 12px;
+}
+
+.search-result-card {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #dfe6ec;
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+
+.search-result-title-row h3 {
+  margin: 0;
+  color: #1f2933;
+  font-size: 1rem;
+}
+
+.search-result-title-row p {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+}
+
+.search-open-button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.search-result-snippet {
+  padding: 12px;
+  border-left: 3px solid #82a7b6;
+  border-radius: 6px;
+  color: #344551;
+  background: #eef4f6;
+  line-height: 1.55;
+}
+
+.search-result-snippet mark,
+.matched-chunk mark {
+  padding: 0 2px;
+  border-radius: 3px;
+  color: #25313a;
+  background: #f4d35e;
+}
+
+.search-result-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.search-result-meta div {
+  min-width: 0;
+}
+
+.search-result-meta dt {
+  color: #6b7785;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.search-result-meta dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.matched-chunk-list {
+  display: grid;
+  gap: 8px;
+}
+
+.matched-chunk {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid #dbe4eb;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.matched-chunk div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.matched-chunk strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.matched-chunk span {
+  flex: 0 1 auto;
+  overflow-wrap: anywhere;
+  color: #6b7785;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.matched-chunk p {
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+}
+
+.search-pagination {
+  align-items: center;
+  padding-top: 2px;
+}
+
+.search-pagination span {
+  color: #52616f;
+  font-weight: 800;
+}
+
 .files-filter-bar {
   display: grid;
   grid-template-columns: minmax(180px, 1.5fr) repeat(3, minmax(120px, 1fr)) auto;
@@ -693,19 +895,32 @@ p {
   }
 
   .scan-workbench,
+  .search-topbar,
+  .search-main-grid,
+  .search-result-meta,
   .files-filter-bar,
   .scan-meta-grid {
     grid-template-columns: 1fr;
   }
 
   .files-table-header,
+  .search-results-header,
+  .search-result-title-row,
+  .search-pagination,
   .settings-actions {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .files-table-header span {
+  .files-table-header span,
+  .search-results-header span,
+  .matched-chunk span {
     max-width: none;
     text-align: left;
+  }
+
+  .matched-chunk div {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
