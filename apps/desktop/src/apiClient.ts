@@ -2,6 +2,7 @@ import type {
   ApiEnvelope,
   CreateScanJobRequest,
   DatabaseStatusData,
+  DocumentProfileData,
   FileActionData,
   FileDetailData,
   FileListData,
@@ -114,6 +115,16 @@ export function listFiles(query: FileListQuery = {}) {
 
 export function getFileDetail(fileId: string) {
   return request<FileDetailData>(`/api/files/${encodeURIComponent(fileId)}`);
+}
+
+export function getFileProfile(fileId: string) {
+  return request<DocumentProfileData>(`/api/files/${encodeURIComponent(fileId)}/profile`);
+}
+
+export function buildFileProfile(fileId: string) {
+  return request<DocumentProfileData>(`/api/profile/build/${encodeURIComponent(fileId)}`, {
+    method: "POST",
+  });
 }
 
 export function openFile(fileId: string) {

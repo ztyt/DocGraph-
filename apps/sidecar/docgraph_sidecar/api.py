@@ -15,6 +15,7 @@ from docgraph_sidecar.core.file_actions import (
     FileActionService,
 )
 from docgraph_sidecar.core.files import FileCatalog, FileCatalogError, parse_file_list_filters
+from docgraph_sidecar.core.profiles import DocumentProfileError, DocumentProfileStore
 from docgraph_sidecar.core.scan_jobs import ScanJobError, ScanJobStore
 from docgraph_sidecar.core.snapshots import (
     SnapshotError,
@@ -236,6 +237,44 @@ def create_app(
             status_code=200,
             file_id=file_id,
             chunk_count=data["chunk_count"],
+        )
+        return ok_response(data, context)
+
+    @app.get("/api/files/{file_id}/profile")
+    async def get_file_profile(file_id: str, request: Request) -> Any:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        try:
+            data = DocumentProfileStore(data_dir=store.data_dir).get_profile(file_id).to_dict()
+        except DocumentProfileError as exc:
+            return _profile_error_response(exc, context)
+
+        log_event(
+            "api.request",
+            path=f"/api/files/{file_id}/profile",
+            trace_id=context.trace_id,
+            status_code=200,
+            file_id=file_id,
+            profile_status=data["status"],
+        )
+        return ok_response(data, context)
+
+    @app.post("/api/profile/build/{file_id}")
+    async def build_file_profile(file_id: str, request: Request) -> Any:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        try:
+            data = DocumentProfileStore(data_dir=store.data_dir).build_profile(file_id).to_dict()
+        except DocumentProfileError as exc:
+            return _profile_error_response(exc, context)
+
+        log_event(
+            "api.request",
+            path=f"/api/profile/build/{file_id}",
+            trace_id=context.trace_id,
+            status_code=200,
+            file_id=file_id,
+            profile_status=data["status"],
         )
         return ok_response(data, context)
 
@@ -611,6 +650,20 @@ def _parse_worker_error_response(exc: ParseWorkerError, context: Any) -> JSONRes
 
 
 def _file_action_error_response(exc: FileActionError, context: Any) -> JSONResponse:
+    status_code = 404 if exc.error_code == "FILE_NOT_FOUND" else 400
+    return JSONResponse(
+        status_code=status_code,
+        content=error_response(
+            code=exc.error_code,
+            message=str(exc),
+            retryable=exc.retryable,
+            details=exc.details,
+            context=context,
+        ),
+    )
+
+
+def _profile_error_response(exc: DocumentProfileError, context: Any) -> JSONResponse:
     status_code = 404 if exc.error_code == "FILE_NOT_FOUND" else 400
     return JSONResponse(
         status_code=status_code,

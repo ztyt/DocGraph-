@@ -179,6 +179,37 @@ export interface FileDetailData {
   chunk_count: number;
 }
 
+export interface ProfileEvidenceChunk {
+  chunk_id: string;
+  chunk_index: number;
+  heading: string | null;
+  section_path: string | null;
+  excerpt: string;
+}
+
+export interface DocumentProfile {
+  file_id: string;
+  central_idea: string | null;
+  document_role: string | null;
+  role_confidence: number | null;
+  project_entities: string[];
+  business_objects: string[];
+  time_scope: string | null;
+  keywords: string[];
+  summary_short: string | null;
+  summary_long: string | null;
+  evidence_chunks: ProfileEvidenceChunk[];
+  profile_confidence: number | null;
+  generated_by: string | null;
+  updated_at: string | null;
+}
+
+export interface DocumentProfileData {
+  file_id: string;
+  profile: DocumentProfile | null;
+  status: "missing" | "ready";
+}
+
 export interface SearchMatchedChunk {
   chunk_id: string;
   heading: string | null;
