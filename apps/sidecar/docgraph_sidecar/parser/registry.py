@@ -111,3 +111,9 @@ class ParserRegistry:
         source_type: str | None = None,
     ) -> ParseResult:
         return self.parse(ParseContext.from_path(path, file_id=file_id, source_type=source_type))
+
+
+def default_parser_registry() -> ParserRegistry:
+    from docgraph_sidecar.parser.text import TextMarkdownParser
+
+    return ParserRegistry([TextMarkdownParser()])

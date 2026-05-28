@@ -12,6 +12,7 @@ from docgraph_sidecar.parser import (
     ParseResult,
     ParserRegistry,
     ParserRegistryError,
+    default_parser_registry,
 )
 from docgraph_sidecar.parser.base import normalize_extension
 
@@ -106,6 +107,12 @@ class ParserRegistryTest(unittest.TestCase):
         self.assertEqual(normalize_extension("TXT"), ".txt")
         self.assertEqual(normalize_extension(".md"), ".md")
         self.assertEqual(normalize_extension(""), "")
+
+    def test_default_registry_includes_text_markdown_parser(self) -> None:
+        registry = default_parser_registry()
+
+        self.assertEqual(registry.get_for_extension(".txt").name, "text-markdown")
+        self.assertEqual(registry.get_for_extension("md").name, "text-markdown")
 
 
 if __name__ == "__main__":

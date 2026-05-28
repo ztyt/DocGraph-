@@ -7,7 +7,8 @@ from docgraph_sidecar.parser.base import (
     ParseContext,
     ParseResult,
 )
-from docgraph_sidecar.parser.registry import ParserRegistry, ParserRegistryError
+from docgraph_sidecar.parser.registry import ParserRegistry, ParserRegistryError, default_parser_registry
+from docgraph_sidecar.parser.text import TextMarkdownParser
 
 __all__ = [
     "BaseParser",
@@ -17,4 +18,6 @@ __all__ = [
     "ParseResult",
     "ParserRegistry",
     "ParserRegistryError",
+    "TextMarkdownParser",
+    "default_parser_registry",
 ]
