@@ -185,6 +185,8 @@ export interface ProfileEvidenceChunk {
   heading: string | null;
   section_path: string | null;
   excerpt: string;
+  score: number | null;
+  source: string | null;
 }
 
 export interface DocumentProfile {

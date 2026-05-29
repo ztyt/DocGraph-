@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from docgraph_sidecar.core.db import connect, initialize_database
-
-
-MAX_KEYWORDS = 12
-MAX_EVIDENCE_CHUNKS = 3
+from docgraph_sidecar.core.profile_builder import (
+    ProfileChunkInput,
+    ProfileFileInput,
+    build_rule_profile,
+)
 
 
 class DocumentProfileError(RuntimeError):
@@ -36,6 +36,8 @@ class ProfileEvidenceChunk:
     heading: str | None
     section_path: str | None
     excerpt: str
+    score: float | None = None
+    source: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -44,6 +46,8 @@ class ProfileEvidenceChunk:
             "heading": self.heading,
             "section_path": self.section_path,
             "excerpt": self.excerpt,
+            "score": self.score,
+            "source": self.source,
         }
 
 
@@ -144,16 +148,21 @@ class DocumentProfileStore:
                 SELECT
                   chunk_id,
                   chunk_index,
+                  chunk_type,
+                  page_no,
+                  sheet_name,
+                  slide_no,
                   heading,
                   section_path,
-                  text
+                  text,
+                  token_count
                 FROM chunks
                 WHERE file_id = ?
                 ORDER BY chunk_index
                 """,
                 (file_id,),
             ).fetchall()
-            profile = _build_rule_profile(file_row, chunk_rows)
+            profile = _build_profile(file_row, chunk_rows)
             connection.execute(
                 """
                 INSERT INTO document_profiles (
@@ -218,44 +227,58 @@ class DocumentProfileStore:
         return row
 
 
-def _build_rule_profile(file_row: Any, chunk_rows: list[Any]) -> DocumentProfile:
-    chunks = tuple(chunk_rows)
-    first_text = _first_text(chunks)
-    central_idea = _truncate(_first_heading(chunks) or _first_sentence(first_text), 180)
-    if not central_idea:
-        central_idea = str(file_row["filename"])
-
-    summary_short = _truncate(first_text, 240) if first_text else None
-    summary_long_source = "\n\n".join(str(row["text"]).strip() for row in chunks[:5] if row["text"])
-    summary_long = _truncate(summary_long_source, 900) if summary_long_source else summary_short
-    evidence_chunks = tuple(
-        ProfileEvidenceChunk(
-            chunk_id=str(row["chunk_id"]),
-            chunk_index=int(row["chunk_index"]),
-            heading=row["heading"],
-            section_path=row["section_path"],
-            excerpt=_truncate(str(row["text"]).strip(), 220),
-        )
-        for row in chunks[:MAX_EVIDENCE_CHUNKS]
+def _build_profile(file_row: Any, chunk_rows: list[Any]) -> DocumentProfile:
+    draft = build_rule_profile(
+        ProfileFileInput(
+            file_id=str(file_row["file_id"]),
+            filename=str(file_row["filename"]),
+            extension=file_row["extension"],
+            source_type=file_row["source_type"],
+        ),
+        tuple(_row_to_builder_chunk(row) for row in chunk_rows),
     )
-    keywords = _extract_keywords(str(file_row["filename"]), chunks)
-    confidence = 0.62 if chunks else 0.25
 
     return DocumentProfile(
         file_id=str(file_row["file_id"]),
-        central_idea=central_idea,
-        document_role=_document_role(file_row["extension"], file_row["source_type"]),
-        role_confidence=0.55,
+        central_idea=draft.central_idea,
+        document_role=draft.document_role,
+        role_confidence=draft.role_confidence,
         project_entities=(),
-        business_objects=keywords[:5],
+        business_objects=draft.business_objects,
         time_scope=None,
-        keywords=keywords,
-        summary_short=summary_short,
-        summary_long=summary_long,
-        evidence_chunks=evidence_chunks,
-        profile_confidence=confidence,
-        generated_by="rules:vc028",
+        keywords=draft.keywords,
+        summary_short=draft.summary_short,
+        summary_long=draft.summary_long,
+        evidence_chunks=tuple(
+            ProfileEvidenceChunk(
+                chunk_id=evidence.chunk_id,
+                chunk_index=evidence.chunk_index,
+                heading=evidence.heading,
+                section_path=evidence.section_path,
+                excerpt=evidence.excerpt,
+                score=evidence.score,
+                source=evidence.source,
+            )
+            for evidence in draft.evidence_chunks
+        ),
+        profile_confidence=draft.profile_confidence,
+        generated_by="rules:vc029",
         updated_at=datetime.now(UTC).isoformat(),
+    )
+
+
+def _row_to_builder_chunk(row: Any) -> ProfileChunkInput:
+    return ProfileChunkInput(
+        chunk_id=str(row["chunk_id"]),
+        chunk_index=int(row["chunk_index"]),
+        chunk_type=row["chunk_type"],
+        page_no=row["page_no"],
+        sheet_name=row["sheet_name"],
+        slide_no=row["slide_no"],
+        heading=row["heading"],
+        section_path=row["section_path"],
+        text=str(row["text"]),
+        token_count=row["token_count"],
     )
 
 
@@ -290,6 +313,8 @@ def _row_to_profile(row: Any) -> DocumentProfile:
             heading=item.get("heading"),
             section_path=item.get("section_path"),
             excerpt=str(item.get("excerpt", "")),
+            score=_optional_float(item.get("score")),
+            source=item.get("source"),
         )
         for item in _json_array(row["evidence_chunks_json"])
         if isinstance(item, dict)
@@ -323,81 +348,10 @@ def _json_array(value: str | None) -> list[Any]:
     return parsed if isinstance(parsed, list) else []
 
 
-def _document_role(extension: str | None, source_type: str | None) -> str:
-    ext = (extension or "").casefold()
-    if ext in {".xlsx", ".xls", ".csv"}:
-        return "spreadsheet"
-    if ext in {".pptx", ".ppt"}:
-        return "presentation"
-    if ext == ".pdf":
-        return "reference_document"
-    if source_type:
-        return f"{source_type}_document"
-    return "local_document"
-
-
-def _first_heading(chunks: tuple[Any, ...]) -> str | None:
-    for row in chunks:
-        heading = row["heading"]
-        if isinstance(heading, str) and heading.strip():
-            return heading.strip()
-    return None
-
-
-def _first_text(chunks: tuple[Any, ...]) -> str:
-    for row in chunks:
-        text = str(row["text"]).strip()
-        if text:
-            return text
-    return ""
-
-
-def _first_sentence(text: str) -> str:
-    cleaned = " ".join(text.split())
-    if not cleaned:
-        return ""
-    match = re.search(r"[.!?\n。！？]", cleaned)
-    if match:
-        return cleaned[: match.start()].strip()
-    return cleaned
-
-
-def _extract_keywords(filename: str, chunks: tuple[Any, ...]) -> tuple[str, ...]:
-    source_parts = [filename]
-    for row in chunks[:8]:
-        if row["heading"]:
-            source_parts.append(str(row["heading"]))
-        if row["section_path"]:
-            source_parts.append(str(row["section_path"]))
-        source_parts.append(str(row["text"])[:500])
-    source = " ".join(source_parts)
-    candidates = re.findall(r"[A-Za-z0-9][A-Za-z0-9_-]{2,}|[\u4e00-\u9fff]{2,}", source)
-    seen: set[str] = set()
-    keywords: list[str] = []
-    for candidate in candidates:
-        normalized = candidate.strip("_-").casefold()
-        if not normalized or normalized in _STOPWORDS or normalized in seen:
-            continue
-        seen.add(normalized)
-        keywords.append(candidate.strip("_-"))
-        if len(keywords) >= MAX_KEYWORDS:
-            break
-    return tuple(keywords)
-
-
-def _truncate(value: str, limit: int) -> str:
-    cleaned = " ".join(value.split())
-    if len(cleaned) <= limit:
-        return cleaned
-    return f"{cleaned[: max(0, limit - 1)].rstrip()}..."
-
-
-_STOPWORDS = {
-    "and",
-    "for",
-    "from",
-    "into",
-    "notes",
-    "the",
-    "with",
-}
+def _optional_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None

@@ -58,9 +58,12 @@ class ProfileApiTest(unittest.TestCase):
         self.assertEqual(build_payload["data"]["status"], "ready")
         self.assertEqual(profile["central_idea"], "Alpha Project")
         self.assertEqual(profile["document_role"], "text_document")
-        self.assertEqual(profile["generated_by"], "rules:vc028")
+        self.assertEqual(profile["generated_by"], "rules:vc029")
         self.assertEqual(profile["evidence_chunks"][0]["chunk_id"], "chunk-alpha-1")
-        self.assertIn("alpha", profile["keywords"])
+        self.assertIn("heading", profile["evidence_chunks"][0]["source"])
+        self.assertGreater(profile["evidence_chunks"][0]["score"], 0)
+        self.assertGreaterEqual(profile["profile_confidence"], 0.7)
+        self.assertIn("Alpha", profile["keywords"])
 
         get_response = self.client.get("/api/files/file-alpha/profile")
         self.assertEqual(get_response.status_code, 200)
@@ -141,12 +144,15 @@ class ProfileApiTest(unittest.TestCase):
                   file_id,
                   chunk_index,
                   chunk_type,
+                  page_no,
+                  sheet_name,
+                  slide_no,
                   heading,
                   section_path,
                   text,
                   token_count
                 )
-                VALUES (?, ?, ?, 'paragraph', ?, ?, ?, 6)
+                VALUES (?, ?, ?, 'paragraph', NULL, NULL, NULL, ?, ?, ?, 6)
                 """,
                 (chunk_id, file_id, chunk_index, heading, section_path, text),
             )
