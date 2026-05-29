@@ -4,6 +4,7 @@ import type {
   DatabaseStatusData,
   DocumentProfileData,
   FileActionData,
+  FileEntitiesData,
   FileDetailData,
   FileListData,
   FileListQuery,
@@ -125,6 +126,10 @@ export function buildFileProfile(fileId: string) {
   return request<DocumentProfileData>(`/api/profile/build/${encodeURIComponent(fileId)}`, {
     method: "POST",
   });
+}
+
+export function getFileEntities(fileId: string) {
+  return request<FileEntitiesData>(`/api/files/${encodeURIComponent(fileId)}/entities`);
 }
 
 export function openFile(fileId: string) {

@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from docgraph_sidecar import __version__
+from docgraph_sidecar.core.entities import EntityStore, EntityStoreError
 from docgraph_sidecar.core.file_actions import (
     FileActionError,
     FileActionLauncher,
@@ -275,6 +276,25 @@ def create_app(
             status_code=200,
             file_id=file_id,
             profile_status=data["status"],
+        )
+        return ok_response(data, context)
+
+    @app.get("/api/files/{file_id}/entities")
+    async def get_file_entities(file_id: str, request: Request) -> Any:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        try:
+            data = EntityStore(data_dir=store.data_dir).get_file_entities(file_id).to_dict()
+        except EntityStoreError as exc:
+            return _entity_error_response(exc, context)
+
+        log_event(
+            "api.request",
+            path=f"/api/files/{file_id}/entities",
+            trace_id=context.trace_id,
+            status_code=200,
+            file_id=file_id,
+            total=data["total"],
         )
         return ok_response(data, context)
 
@@ -664,6 +684,20 @@ def _file_action_error_response(exc: FileActionError, context: Any) -> JSONRespo
 
 
 def _profile_error_response(exc: DocumentProfileError, context: Any) -> JSONResponse:
+    status_code = 404 if exc.error_code == "FILE_NOT_FOUND" else 400
+    return JSONResponse(
+        status_code=status_code,
+        content=error_response(
+            code=exc.error_code,
+            message=str(exc),
+            retryable=exc.retryable,
+            details=exc.details,
+            context=context,
+        ),
+    )
+
+
+def _entity_error_response(exc: EntityStoreError, context: Any) -> JSONResponse:
     status_code = 404 if exc.error_code == "FILE_NOT_FOUND" else 400
     return JSONResponse(
         status_code=status_code,

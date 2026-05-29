@@ -213,6 +213,34 @@ export interface DocumentProfileData {
   status: "missing" | "ready";
 }
 
+export type EntityType =
+  | "PROJECT"
+  | "ORG"
+  | "LOCATION"
+  | "DEVICE"
+  | "MONEY"
+  | "DATE"
+  | "ID_CODE";
+
+export interface FileEntityItem {
+  entity_id: string;
+  entity_text: string;
+  normalized_text: string | null;
+  entity_type: EntityType | null;
+  entity_confidence: number | null;
+  evidence_chunk_id: string | null;
+  evidence_text: string | null;
+  evidence_confidence: number | null;
+  created_at: string | null;
+}
+
+export interface FileEntitiesData {
+  file_id: string;
+  items: FileEntityItem[];
+  total: number;
+  supported_types: EntityType[];
+}
+
 export interface SearchMatchedChunk {
   chunk_id: string;
   heading: string | null;
