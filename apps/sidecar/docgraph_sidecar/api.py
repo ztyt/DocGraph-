@@ -17,6 +17,7 @@ from docgraph_sidecar.core.file_actions import (
 )
 from docgraph_sidecar.core.files import FileCatalog, FileCatalogError, parse_file_list_filters
 from docgraph_sidecar.core.profiles import DocumentProfileError, DocumentProfileStore
+from docgraph_sidecar.core.relations import RelationCandidateError, RelationCandidateStore
 from docgraph_sidecar.core.scan_jobs import ScanJobError, ScanJobStore
 from docgraph_sidecar.core.snapshots import (
     SnapshotError,
@@ -314,6 +315,42 @@ def create_app(
             status_code=200,
             file_id=file_id,
             extracted_count=data["extracted_count"],
+        )
+        return ok_response(data, context)
+
+    @app.post("/api/relations/candidates/{file_id}")
+    async def build_relation_candidates(file_id: str, request: Request) -> Any:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        limit_param = request.query_params.get("per_source_limit")
+        try:
+            per_source_limit = int(limit_param) if limit_param else 20
+        except ValueError:
+            return JSONResponse(
+                status_code=400,
+                content=error_response(
+                    code="RELATION_CANDIDATE_ERROR",
+                    message="per_source_limit must be an integer.",
+                    retryable=False,
+                    details={"per_source_limit": "Expected an integer."},
+                    context=context,
+                ),
+            )
+        try:
+            data = RelationCandidateStore(data_dir=store.data_dir).build_for_file(
+                file_id,
+                per_source_limit=per_source_limit,
+            ).to_dict()
+        except RelationCandidateError as exc:
+            return _relation_candidate_error_response(exc, context)
+
+        log_event(
+            "api.request",
+            path=f"/api/relations/candidates/{file_id}",
+            trace_id=context.trace_id,
+            status_code=200,
+            file_id=file_id,
+            total=data["total"],
         )
         return ok_response(data, context)
 
@@ -717,6 +754,23 @@ def _profile_error_response(exc: DocumentProfileError, context: Any) -> JSONResp
 
 
 def _entity_error_response(exc: EntityStoreError, context: Any) -> JSONResponse:
+    status_code = 404 if exc.error_code == "FILE_NOT_FOUND" else 400
+    return JSONResponse(
+        status_code=status_code,
+        content=error_response(
+            code=exc.error_code,
+            message=str(exc),
+            retryable=exc.retryable,
+            details=exc.details,
+            context=context,
+        ),
+    )
+
+
+def _relation_candidate_error_response(
+    exc: RelationCandidateError,
+    context: Any,
+) -> JSONResponse:
     status_code = 404 if exc.error_code == "FILE_NOT_FOUND" else 400
     return JSONResponse(
         status_code=status_code,

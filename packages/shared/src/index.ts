@@ -246,6 +246,30 @@ export interface EntityExtractionData extends FileEntitiesData {
   generated_by: "rules:vc033";
 }
 
+export type RelationCandidateSource =
+  | "same_folder"
+  | "fts_overlap"
+  | "same_entity"
+  | "time_window"
+  | "filename_similarity";
+
+export interface RelationCandidateItem {
+  source_file_id: string;
+  target_file_id: string;
+  target_filename: string;
+  candidate_source: RelationCandidateSource;
+  raw_score: number;
+  payload: Record<string, unknown>;
+  created_at: string | null;
+}
+
+export interface RelationCandidatesData {
+  source_file_id: string;
+  items: RelationCandidateItem[];
+  total: number;
+  candidate_sources: RelationCandidateSource[];
+}
+
 export interface SearchMatchedChunk {
   chunk_id: string;
   heading: string | null;

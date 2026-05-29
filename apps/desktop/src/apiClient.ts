@@ -13,6 +13,7 @@ import type {
   FeatureFlagsPatch,
   HealthData,
   ParseRetryData,
+  RelationCandidatesData,
   ScanJobData,
   SearchData,
   SearchQuery,
@@ -137,6 +138,17 @@ export function extractFileEntities(fileId: string) {
   return request<EntityExtractionData>(`/api/entities/extract/${encodeURIComponent(fileId)}`, {
     method: "POST",
   });
+}
+
+export function buildRelationCandidates(fileId: string, perSourceLimit?: number) {
+  const suffix =
+    perSourceLimit === undefined ? "" : `?per_source_limit=${encodeURIComponent(perSourceLimit)}`;
+  return request<RelationCandidatesData>(
+    `/api/relations/candidates/${encodeURIComponent(fileId)}${suffix}`,
+    {
+      method: "POST",
+    },
+  );
 }
 
 export function openFile(fileId: string) {
