@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from docgraph_sidecar.core.db import connect, initialize_database
+from docgraph_sidecar.core.entity_extractor import EntityExtractionChunk, extract_rule_entities
 
 
 SUPPORTED_ENTITY_TYPES = (
@@ -74,6 +76,23 @@ class FileEntityResult:
         }
 
 
+@dataclass(frozen=True)
+class EntityExtractionResult:
+    file_id: str
+    extracted_count: int
+    items: tuple[FileEntityItem, ...]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "file_id": self.file_id,
+            "extracted_count": self.extracted_count,
+            "items": [item.to_dict() for item in self.items],
+            "total": len(self.items),
+            "supported_types": list(SUPPORTED_ENTITY_TYPES),
+            "generated_by": "rules:vc033",
+        }
+
+
 class EntityStore:
     def __init__(self, *, data_dir: Path | None = None) -> None:
         self.data_dir = data_dir
@@ -115,6 +134,96 @@ class EntityStore:
         return FileEntityResult(
             file_id=file_id,
             items=tuple(_row_to_file_entity(row) for row in rows),
+        )
+
+    def extract_file_entities(self, file_id: str) -> EntityExtractionResult:
+        connection = connect(data_dir=self.data_dir)
+        try:
+            self._ensure_file_exists(connection, file_id)
+            chunk_rows = connection.execute(
+                """
+                SELECT chunk_id, text
+                FROM chunks
+                WHERE file_id = ?
+                ORDER BY chunk_index
+                """,
+                (file_id,),
+            ).fetchall()
+            candidates = extract_rule_entities(
+                tuple(
+                    EntityExtractionChunk(
+                        chunk_id=str(row["chunk_id"]),
+                        text=str(row["text"]),
+                    )
+                    for row in chunk_rows
+                )
+            )
+            now = datetime.now(UTC).isoformat()
+            connection.execute("DELETE FROM file_entities WHERE file_id = ?", (file_id,))
+            for candidate in candidates:
+                connection.execute(
+                    """
+                    INSERT INTO entities (
+                      entity_id,
+                      entity_text,
+                      normalized_text,
+                      entity_type,
+                      confidence,
+                      created_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(entity_id) DO UPDATE SET
+                      entity_text = excluded.entity_text,
+                      normalized_text = excluded.normalized_text,
+                      entity_type = excluded.entity_type,
+                      confidence = MAX(COALESCE(entities.confidence, 0), excluded.confidence)
+                    """,
+                    (
+                        candidate.entity_id,
+                        candidate.entity_text,
+                        candidate.normalized_text,
+                        candidate.entity_type,
+                        candidate.entity_confidence,
+                        now,
+                    ),
+                )
+                connection.execute(
+                    """
+                    INSERT INTO file_entities (
+                      file_id,
+                      entity_id,
+                      evidence_chunk_id,
+                      evidence_text,
+                      confidence,
+                      created_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(file_id, entity_id, evidence_chunk_id) DO UPDATE SET
+                      evidence_text = excluded.evidence_text,
+                      confidence = excluded.confidence,
+                      created_at = excluded.created_at
+                    """,
+                    (
+                        file_id,
+                        candidate.entity_id,
+                        candidate.evidence_chunk_id,
+                        candidate.evidence_text,
+                        candidate.evidence_confidence,
+                        now,
+                    ),
+                )
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
+        result = self.get_file_entities(file_id)
+        return EntityExtractionResult(
+            file_id=file_id,
+            extracted_count=len(candidates),
+            items=result.items,
         )
 
     def _ensure_file_exists(self, connection: Any, file_id: str) -> None:

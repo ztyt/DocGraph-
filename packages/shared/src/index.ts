@@ -241,6 +241,11 @@ export interface FileEntitiesData {
   supported_types: EntityType[];
 }
 
+export interface EntityExtractionData extends FileEntitiesData {
+  extracted_count: number;
+  generated_by: "rules:vc033";
+}
+
 export interface SearchMatchedChunk {
   chunk_id: string;
   heading: string | null;

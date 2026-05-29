@@ -3,6 +3,7 @@ import type {
   CreateScanJobRequest,
   DatabaseStatusData,
   DocumentProfileData,
+  EntityExtractionData,
   FileActionData,
   FileEntitiesData,
   FileDetailData,
@@ -130,6 +131,12 @@ export function buildFileProfile(fileId: string) {
 
 export function getFileEntities(fileId: string) {
   return request<FileEntitiesData>(`/api/files/${encodeURIComponent(fileId)}/entities`);
+}
+
+export function extractFileEntities(fileId: string) {
+  return request<EntityExtractionData>(`/api/entities/extract/${encodeURIComponent(fileId)}`, {
+    method: "POST",
+  });
 }
 
 export function openFile(fileId: string) {

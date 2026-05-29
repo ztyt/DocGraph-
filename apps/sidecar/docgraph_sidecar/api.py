@@ -298,6 +298,25 @@ def create_app(
         )
         return ok_response(data, context)
 
+    @app.post("/api/entities/extract/{file_id}")
+    async def extract_file_entities(file_id: str, request: Request) -> Any:
+        context = request_context(request)
+        store: SettingsStore = request.app.state.settings_store
+        try:
+            data = EntityStore(data_dir=store.data_dir).extract_file_entities(file_id).to_dict()
+        except EntityStoreError as exc:
+            return _entity_error_response(exc, context)
+
+        log_event(
+            "api.request",
+            path=f"/api/entities/extract/{file_id}",
+            trace_id=context.trace_id,
+            status_code=200,
+            file_id=file_id,
+            extracted_count=data["extracted_count"],
+        )
+        return ok_response(data, context)
+
     @app.get("/api/search")
     async def search(request: Request) -> Any:
         context = request_context(request)

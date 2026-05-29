@@ -17,7 +17,15 @@ class EntitiesApiTest(unittest.TestCase):
         self.data_dir = Path(self.temp_dir.name)
         initialize_database(data_dir=self.data_dir)
         self._insert_file("file-alpha", "C:/docs/alpha.md", "alpha.md")
-        self._insert_chunk("chunk-alpha-1", "file-alpha", 0, "Alpha project budget.")
+        self._insert_chunk(
+            "chunk-alpha-1",
+            "file-alpha",
+            0,
+            (
+                "Alpha Project budget for North Center at Hefei Site uses camera A1 "
+                "and switch S2. Amount is ¥1,200 on 2026-05-29. Ref DG-2026-001."
+            ),
+        )
         self.client = TestClient(create_app(settings_store=SettingsStore(self.data_dir)))
 
     def tearDown(self) -> None:
@@ -95,6 +103,45 @@ class EntitiesApiTest(unittest.TestCase):
 
     def test_file_entities_missing_file_returns_not_found(self) -> None:
         response = self.client.get("/api/files/missing/entities")
+
+        self.assertEqual(response.status_code, 404)
+        payload = response.json()
+        self.assertFalse(payload["ok"])
+        self.assertEqual(payload["error"]["code"], "FILE_NOT_FOUND")
+        self.assertEqual(payload["error"]["details"]["file_id"], "missing")
+
+    def test_extract_file_entities_writes_rule_entities_and_evidence(self) -> None:
+        response = self.client.post("/api/entities/extract/file-alpha")
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        data = payload["data"]
+        self.assertEqual(data["file_id"], "file-alpha")
+        self.assertEqual(data["generated_by"], "rules:vc033")
+        self.assertGreaterEqual(data["extracted_count"], 7)
+        entity_types = {item["entity_type"] for item in data["items"]}
+        self.assertTrue(
+            {"PROJECT", "ORG", "LOCATION", "DEVICE", "MONEY", "DATE", "ID_CODE"}.issubset(
+                entity_types
+            )
+        )
+        project = next(item for item in data["items"] if item["entity_type"] == "PROJECT")
+        self.assertEqual(project["entity_text"], "Alpha Project")
+        self.assertEqual(project["normalized_text"], "alpha project")
+        self.assertEqual(project["evidence_chunk_id"], "chunk-alpha-1")
+        self.assertIn("Alpha Project", project["evidence_text"])
+
+        second_response = self.client.post("/api/entities/extract/file-alpha")
+        self.assertEqual(second_response.status_code, 200)
+        self.assertEqual(second_response.json()["data"]["total"], data["total"])
+
+        get_response = self.client.get("/api/files/file-alpha/entities")
+        self.assertEqual(get_response.status_code, 200)
+        self.assertEqual(get_response.json()["data"]["total"], data["total"])
+
+    def test_extract_file_entities_missing_file_returns_not_found(self) -> None:
+        response = self.client.post("/api/entities/extract/missing")
 
         self.assertEqual(response.status_code, 404)
         payload = response.json()
