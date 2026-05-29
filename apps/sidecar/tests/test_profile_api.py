@@ -58,7 +58,7 @@ class ProfileApiTest(unittest.TestCase):
         self.assertEqual(build_payload["data"]["status"], "ready")
         self.assertEqual(profile["central_idea"], "Alpha Project")
         self.assertEqual(profile["document_role"], "text_document")
-        self.assertEqual(profile["generated_by"], "rules:vc029")
+        self.assertEqual(profile["generated_by"], "rules:vc030")
         self.assertEqual(profile["evidence_chunks"][0]["chunk_id"], "chunk-alpha-1")
         self.assertIn("heading", profile["evidence_chunks"][0]["source"])
         self.assertGreater(profile["evidence_chunks"][0]["score"], 0)

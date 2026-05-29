@@ -62,6 +62,7 @@ const requiredPaths = [
   "apps/sidecar/docgraph_sidecar/migrations/002_v4_schema.sql",
   "apps/sidecar/docgraph_sidecar/migrations/003_task_queue_contract.sql",
   "apps/sidecar/docgraph_sidecar/migrations/004_scan_jobs.sql",
+  "apps/sidecar/docgraph_sidecar/migrations/005_profile_strategy_data.sql",
   "apps/sidecar/tests/test_skeleton.py",
   "apps/sidecar/tests/test_db.py",
   "packages/shared/package.json",

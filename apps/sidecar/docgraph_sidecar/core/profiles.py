@@ -67,6 +67,7 @@ class DocumentProfile:
     profile_confidence: float | None
     generated_by: str | None
     updated_at: str | None
+    strategy_data: dict[str, Any]
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -84,6 +85,7 @@ class DocumentProfile:
             "profile_confidence": self.profile_confidence,
             "generated_by": self.generated_by,
             "updated_at": self.updated_at,
+            "strategy_data": self.strategy_data,
         }
 
 
@@ -126,7 +128,8 @@ class DocumentProfileStore:
                   evidence_chunks_json,
                   profile_confidence,
                   generated_by,
-                  updated_at
+                  updated_at,
+                  strategy_data_json
                 FROM document_profiles
                 WHERE file_id = ?
                 """,
@@ -179,9 +182,10 @@ class DocumentProfileStore:
                   evidence_chunks_json,
                   profile_confidence,
                   generated_by,
-                  updated_at
+                  updated_at,
+                  strategy_data_json
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(file_id) DO UPDATE SET
                   central_idea = excluded.central_idea,
                   document_role = excluded.document_role,
@@ -195,7 +199,8 @@ class DocumentProfileStore:
                   evidence_chunks_json = excluded.evidence_chunks_json,
                   profile_confidence = excluded.profile_confidence,
                   generated_by = excluded.generated_by,
-                  updated_at = excluded.updated_at
+                  updated_at = excluded.updated_at,
+                  strategy_data_json = excluded.strategy_data_json
                 """,
                 _profile_to_row(profile),
             )
@@ -262,8 +267,9 @@ def _build_profile(file_row: Any, chunk_rows: list[Any]) -> DocumentProfile:
             for evidence in draft.evidence_chunks
         ),
         profile_confidence=draft.profile_confidence,
-        generated_by="rules:vc029",
+        generated_by="rules:vc030",
         updated_at=datetime.now(UTC).isoformat(),
+        strategy_data=draft.strategy_data,
     )
 
 
@@ -302,6 +308,7 @@ def _profile_to_row(profile: DocumentProfile) -> tuple[Any, ...]:
         profile.profile_confidence,
         profile.generated_by,
         profile.updated_at,
+        json.dumps(profile.strategy_data, ensure_ascii=False, sort_keys=True),
     )
 
 
@@ -334,6 +341,7 @@ def _row_to_profile(row: Any) -> DocumentProfile:
         profile_confidence=row["profile_confidence"],
         generated_by=row["generated_by"],
         updated_at=row["updated_at"],
+        strategy_data=_json_object(row["strategy_data_json"]),
     )
 
 
@@ -346,6 +354,13 @@ def _json_array(value: str | None) -> list[Any]:
         return []
     parsed = json.loads(value)
     return parsed if isinstance(parsed, list) else []
+
+
+def _json_object(value: str | None) -> dict[str, Any]:
+    if not value:
+        return {}
+    parsed = json.loads(value)
+    return parsed if isinstance(parsed, dict) else {}
 
 
 def _optional_float(value: Any) -> float | None:

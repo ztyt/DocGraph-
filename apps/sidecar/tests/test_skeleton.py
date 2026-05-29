@@ -125,7 +125,7 @@ class HealthApiTest(unittest.TestCase):
 
         self.assertEqual(status.status_code, 200)
         self.assertTrue(status.json()["data"]["exists"])
-        self.assertEqual(status.json()["data"]["schema_version"], "004_scan_jobs")
+        self.assertEqual(status.json()["data"]["schema_version"], "005_profile_strategy_data")
 
         snapshot = self.client.post("/api/db/snapshot")
         self.assertEqual(snapshot.status_code, 200)

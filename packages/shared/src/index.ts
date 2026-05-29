@@ -204,6 +204,7 @@ export interface DocumentProfile {
   profile_confidence: number | null;
   generated_by: string | null;
   updated_at: string | null;
+  strategy_data: Record<string, unknown>;
 }
 
 export interface DocumentProfileData {
