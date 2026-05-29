@@ -176,6 +176,12 @@ def _central_idea(
         if isinstance(central_idea, str) and central_idea:
             return _truncate(central_idea, 180)
 
+    presentation_profile = strategy_data.get("presentation_profile")
+    if isinstance(presentation_profile, dict):
+        central_idea = presentation_profile.get("central_idea")
+        if isinstance(central_idea, str) and central_idea:
+            return _truncate(central_idea, 180)
+
     filename_label = _title_case(_filename_stem(file.filename))
     for evidence in evidence_chunks:
         title = _clean_title(evidence.heading) or _clean_title(evidence.section_path)
@@ -198,9 +204,11 @@ def _strategy_data(
     chunks: tuple[ProfileChunkInput, ...],
     role: str,
 ) -> dict[str, Any]:
-    if role != "spreadsheet":
-        return {}
-    return {"excel_profile": _excel_profile(file, chunks)}
+    if role == "spreadsheet":
+        return {"excel_profile": _excel_profile(file, chunks)}
+    if role == "presentation_deck":
+        return {"presentation_profile": _presentation_profile(file, chunks)}
+    return {}
 
 
 def _excel_profile(
@@ -307,6 +315,139 @@ def _excel_central_idea(file: ProfileFileInput, main_sheets: list[str], business
     if sheet_label:
         return f"{filename_label} - {sheet_label} {role_label}"
     return f"{filename_label} - {role_label}"
+
+
+def _presentation_profile(
+    file: ProfileFileInput,
+    chunks: tuple[ProfileChunkInput, ...],
+) -> dict[str, Any]:
+    slide_chunks = [chunk for chunk in chunks if (chunk.chunk_type or "").casefold() == "slide" or chunk.slide_no]
+    slides = [_parse_slide_chunk(chunk) for chunk in slide_chunks]
+    slide_titles = _unique(str(slide["title"]) for slide in slides if slide["title"])
+    cover_title = str(slides[0]["title"]) if slides and slides[0]["title"] else None
+    section_titles = _presentation_section_titles(slides)
+    notes_summary = _unique(str(slide["notes"]) for slide in slides if slide["notes"])[:5]
+    evidence_slides = _presentation_evidence_slides(slides)
+    presentation_topic = cover_title or next((title for title in slide_titles if not _is_generic_title(title)), None)
+    if not presentation_topic:
+        presentation_topic = _title_case(_filename_stem(file.filename))
+
+    return {
+        "slide_count": len(slides),
+        "cover_title": cover_title,
+        "presentation_topic": presentation_topic,
+        "section_titles": section_titles,
+        "slide_titles": slide_titles[:40],
+        "notes_summary": notes_summary,
+        "evidence_slides": evidence_slides,
+        "central_idea": presentation_topic,
+    }
+
+
+def _parse_slide_chunk(chunk: ProfileChunkInput) -> dict[str, Any]:
+    title = _clean_title(chunk.heading)
+    body_lines: list[str] = []
+    notes: str | None = None
+    in_body = False
+    parsed_slide_no = chunk.slide_no
+
+    for raw_line in chunk.text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        slide_match = re.match(r"Slide\s+(\d+)", line, flags=re.IGNORECASE)
+        if slide_match and parsed_slide_no is None:
+            parsed_slide_no = int(slide_match.group(1))
+        if line.startswith("Title:"):
+            title = _clean_title(line.removeprefix("Title:")) or title
+            in_body = False
+        elif line == "Body:":
+            in_body = True
+        elif line.startswith("Notes:"):
+            notes = _clean_title(line.removeprefix("Notes:"))
+            in_body = False
+        elif in_body:
+            body_lines.append(line)
+
+    return {
+        "slide_no": parsed_slide_no or chunk.chunk_index + 1,
+        "chunk_id": chunk.chunk_id,
+        "title": title,
+        "body": " ".join(body_lines).strip(),
+        "notes": notes,
+        "token_count": chunk.token_count or _rough_token_count(chunk.text),
+    }
+
+
+def _presentation_section_titles(slides: list[dict[str, Any]]) -> list[str]:
+    titles: list[str] = []
+    for index, slide in enumerate(slides):
+        if index == 0:
+            continue
+        title = slide.get("title")
+        if not isinstance(title, str) or not title or _is_generic_title(title):
+            continue
+        body = str(slide.get("body") or "")
+        title_text = title.casefold()
+        section_hint = any(
+            keyword in title_text
+            for keyword in (
+                "agenda",
+                "chapter",
+                "overview",
+                "roadmap",
+                "timeline",
+                "status",
+                "risk",
+                "plan",
+                "目录",
+                "议程",
+                "章节",
+                "概览",
+                "路线",
+                "计划",
+                "风险",
+                "进展",
+            )
+        )
+        if section_hint or len(body) <= 120:
+            titles.append(title)
+    return _unique(titles)[:12]
+
+
+def _presentation_evidence_slides(slides: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    evidence: list[dict[str, Any]] = []
+    seen: set[int] = set()
+
+    def add(slide: dict[str, Any], reason: str) -> None:
+        slide_no = int(slide["slide_no"])
+        if slide_no in seen:
+            return
+        seen.add(slide_no)
+        evidence.append(
+            {
+                "slide_no": slide_no,
+                "chunk_id": slide["chunk_id"],
+                "title": slide["title"],
+                "reason": reason,
+                "notes_excerpt": _truncate(str(slide["notes"]), 160) if slide["notes"] else None,
+            }
+        )
+
+    if slides:
+        add(slides[0], "cover")
+    for slide in slides:
+        if slide["notes"]:
+            add(slide, "notes")
+    section_titles = set(_presentation_section_titles(slides))
+    for slide in slides:
+        if slide["title"] in section_titles:
+            add(slide, "section_title")
+    for slide in slides:
+        if len(evidence) >= 5:
+            break
+        add(slide, "slide_title")
+    return evidence[:5]
 
 
 def _summary_short(

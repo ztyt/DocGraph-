@@ -267,7 +267,7 @@ def _build_profile(file_row: Any, chunk_rows: list[Any]) -> DocumentProfile:
             for evidence in draft.evidence_chunks
         ),
         profile_confidence=draft.profile_confidence,
-        generated_by="rules:vc030",
+        generated_by="rules:vc031",
         updated_at=datetime.now(UTC).isoformat(),
         strategy_data=draft.strategy_data,
     )

@@ -94,7 +94,15 @@ class ProfileBuilderTest(unittest.TestCase):
                     "slide",
                     "Quarterly Review",
                     "Quarterly Review",
-                    "Slide 1 Title: Quarterly Review Body: Revenue and risk overview.",
+                    "\n".join(
+                        [
+                            "Slide 1",
+                            "Title: Quarterly Review",
+                            "Body:",
+                            "Revenue and risk overview.",
+                            "Notes: Open with revenue trend.",
+                        ]
+                    ),
                     slide_no=1,
                     token_count=10,
                 ),
@@ -102,11 +110,37 @@ class ProfileBuilderTest(unittest.TestCase):
                     "chunk-slide-2",
                     1,
                     "slide",
-                    "Risks",
-                    "Risks",
-                    "Slide 2 Title: Risks Body: Customer renewal pressure.",
+                    "Agenda",
+                    "Agenda",
+                    "\n".join(
+                        [
+                            "Slide 2",
+                            "Title: Agenda",
+                            "Body:",
+                            "Roadmap",
+                            "Risks",
+                        ]
+                    ),
                     slide_no=2,
                     token_count=9,
+                ),
+                _chunk(
+                    "chunk-slide-3",
+                    2,
+                    "slide",
+                    "Risks",
+                    "Risks",
+                    "\n".join(
+                        [
+                            "Slide 3",
+                            "Title: Risks",
+                            "Body:",
+                            "Customer renewal pressure.",
+                            "Notes: Mention mitigation owner.",
+                        ]
+                    ),
+                    slide_no=3,
+                    token_count=10,
                 ),
             ),
         )
@@ -116,6 +150,16 @@ class ProfileBuilderTest(unittest.TestCase):
         self.assertEqual(draft.evidence_chunks[0].chunk_id, "chunk-slide-1")
         self.assertIn("slide", draft.evidence_chunks[0].source)
         self.assertIn("Quarterly", draft.keywords)
+        presentation_profile = draft.strategy_data["presentation_profile"]
+        self.assertEqual(presentation_profile["slide_count"], 3)
+        self.assertEqual(presentation_profile["cover_title"], "Quarterly Review")
+        self.assertEqual(presentation_profile["presentation_topic"], "Quarterly Review")
+        self.assertIn("Agenda", presentation_profile["section_titles"])
+        self.assertIn("Risks", presentation_profile["slide_titles"])
+        self.assertEqual(presentation_profile["notes_summary"][0], "Open with revenue trend.")
+        self.assertEqual(presentation_profile["evidence_slides"][0]["reason"], "cover")
+        self.assertEqual(presentation_profile["evidence_slides"][0]["slide_no"], 1)
+        self.assertEqual(presentation_profile["evidence_slides"][1]["reason"], "notes")
 
 
 def _chunk(
